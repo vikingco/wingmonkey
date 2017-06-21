@@ -1,9 +1,9 @@
-from requests import Session, exceptions
-from requests.auth import HTTPBasicAuth
 from logging import getLogger
 
-from settings import MAILCHIMP_ROOT, MAILCHIMP_API_KEY
-from helpers import SerializerMixin
+from requests import Session, exceptions
+from requests.auth import HTTPBasicAuth
+
+from wingmonkey.settings import MAILCHIMP_ROOT, MAILCHIMP_API_KEY
 
 logger = getLogger(__name__)
 
@@ -39,11 +39,11 @@ class MailChimpSession:
             response.raise_for_status()
             return response
         except exceptions.HTTPError:
-            logger.error('STATUS %s %s', response.status_code, response.content)
+            raise ClientException(response.status_code, response.content)
         except exceptions.Timeout:
-            logger.error('STATUS 504 Time out')
+            raise ClientException(504, 'Time out')
         except exceptions.ConnectionError:
-            logger.error('STATUS 503 Can not connect to server')
+            raise ClientException(503, 'Can not connect to server')
 
     def get(self, url=None, json=None, query_parameters=None):
         return self._request(self.session.get, url, json, query_parameters)
@@ -58,33 +58,14 @@ class MailChimpSession:
         return self._request(self.session.delete, url, json, query_parameters)
 
 
-class MailChimpAccountInfo(SerializerMixin):
+class ClientException(Exception):
+    """
+    Exception indicating an unexpected http response was received. (not 2xx and not 404)
+    """
+    def __init__(self, http_code, response_body):
+        self.http_code = http_code
+        self.response_body = response_body
+        logger.error(response_body)
 
-    def __init__(self, account_id=None, login_id=None, account_name=None, email=None, first_name=None, last_name=None,
-                 username=None, role=None, contact=None, total_subscribers=0):
-        """
-        class representing mailchimp account info
-        :param account_id: 
-        :param login_id: 
-        :param account_name: 
-        :param email: 
-        :param first_name: 
-        :param last_name: 
-        :param username: 
-        :param role: 
-        :param contact: 
-        :param total_subscribers: 
-        """
-        self.account_id = account_id
-        self.login_id = login_id
-        self.account_name = account_name
-        self.email = email
-        self.first_name = first_name
-        self.last_name = last_name
-        self.username = username
-        self.role = role
-        self.contact = contact
-        self.total_subscribers = total_subscribers
-
-        self.deserialize(MailChimpSession().get().text)
-
+    def __str__(self):
+        return '{}: {}'.format(self.http_code, self.response_body)

@@ -1,11 +1,16 @@
 from environ import Env, Path
+from os import path
 
 env = Env(DEBUG=(bool, False),)
 
-root = Path(__file__)
-env.read_env()
+root = Path(__file__) - 2
 
-ROOT = root()
+ROOT = root
+
+ENV_FILE = str(env.path('ENV_FILE', default='{}/.env'.format(ROOT)))
+if path.isfile(ENV_FILE):
+    env.read_env(ENV_FILE)
+
 MAILCHIMP_API_KEY = env('MAILCHIMP_API_KEY')
 DATACENTER = MAILCHIMP_API_KEY.split('-')[1]
 MAILCHIMP_ROOT = env('MAILCHIMP_ROOT_URL', default='https://{}.api.mailchimp.com/3.0'.format(DATACENTER))

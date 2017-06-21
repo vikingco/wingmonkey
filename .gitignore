@@ -34,5 +34,8 @@ Icon
 .ssh/
 .cache/
 
-#env files
+# env files
 .env
+
+# coverage file
+.coverage

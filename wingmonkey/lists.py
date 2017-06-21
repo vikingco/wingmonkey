@@ -1,11 +1,12 @@
-from api_base import MailChimpSession
-from settings import DEFAULT_PERMISSION_REMINDER, CAMPAIGN_DEFAULTS, DEFAULT_CONTACT
-from helpers import SerializerMixin
+from wingmonkey.mailchimp_session import MailChimpSession
+
+from wingmonkey.serializers import Serializer
+from wingmonkey.settings import DEFAULT_PERMISSION_REMINDER, CAMPAIGN_DEFAULTS, DEFAULT_CONTACT
 
 session = MailChimpSession()
 
 
-class List(SerializerMixin):
+class List(Serializer):
     """
     class representing mailing list in mailchimp
     """
@@ -73,7 +74,7 @@ class List(SerializerMixin):
             return True
 
 
-class Lists(SerializerMixin):
+class Lists(Serializer):
     """
     class representing multiple mailchimp lists
     """

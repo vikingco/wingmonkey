@@ -1,9 +1,9 @@
 from json import loads, dumps
 
 
-class SerializerMixin:
+class Serializer:
     """
-    Mixin to provide simple json serialization and deserialization functions for an object
+    class to provide simple json serialization and deserialization functions for an object
     """
 
     def serialize(self, indent=None, strip_empty=False):
