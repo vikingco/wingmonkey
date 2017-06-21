@@ -20,12 +20,12 @@ class MailChimpSession:
 
     def _request(self, method, url=None, json=None, query_parameters=None):
         """
-        
-        :param method: HTTPrequest method 
+
+        :param method: HTTPrequest method
         :param url: url for the request
         :param json: json data
         :param query_parameters: query parameters for get request
-        :return: 
+        :return:
         """
 
         if not url:
@@ -67,5 +67,5 @@ class ClientException(Exception):
         self.response_body = response_body
         logger.error(response_body)
 
-    def __str__(self):
+    def __repr__(self):
         return '{}: {}'.format(self.http_code, self.response_body)

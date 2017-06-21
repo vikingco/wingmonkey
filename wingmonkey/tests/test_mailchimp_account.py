@@ -1,8 +1,10 @@
 from requests_mock import Mocker
 from json import dumps
 
-from wingmonkey.mailchimp_account import MailChimpAccountInfo
+from wingmonkey.mailchimp_account import MailChimpAccountInfoSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
+
+account_info_serializer = MailChimpAccountInfoSerializer()
 
 
 def test_mailchimp_account_info():
@@ -29,7 +31,8 @@ def test_mailchimp_account_info():
 
     with Mocker() as request_mock:
         request_mock.get('{}/'.format(MAILCHIMP_ROOT), text=dumps(expected))
-        account_info = MailChimpAccountInfo()
-        assert account_info.serialize() == dumps(expected)
+        account_info = account_info_serializer.read()
         for key in account_info.__dict__.keys():
+            if key == 'schema':
+                continue
             assert account_info.__dict__[key] == expected[key]

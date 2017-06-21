@@ -7,9 +7,11 @@ root = Path(__file__) - 2
 
 ROOT = root
 
-ENV_FILE = str(env.path('ENV_FILE', default='{}/.env'.format(ROOT)))
+ENV_FILE = str(env.path('ENV_FILE', default='.env'))
 if path.isfile(ENV_FILE):
     env.read_env(ENV_FILE)
+else:
+    ENV_FILE = None
 
 MAILCHIMP_API_KEY = env('MAILCHIMP_API_KEY')
 DATACENTER = MAILCHIMP_API_KEY.split('-')[1]

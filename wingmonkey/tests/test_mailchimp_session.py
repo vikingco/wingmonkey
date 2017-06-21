@@ -105,4 +105,4 @@ def test_mailchimsession_connection_error_exception(mailchimp_session):
 
 def test_client_exception_representation():
     exception = ClientException(400, 'Error Message')
-    assert exception.__str__() == '400: Error Message'
+    assert exception.__repr__() == '400: Error Message'
