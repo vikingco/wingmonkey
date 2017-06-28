@@ -1,0 +1,41 @@
+# Python
+*.py[co]
+
+# OSX
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Files that might appear on external disk
+.Spotlight-V100
+.Trashes
+
+# PyCharm settings
+.idea
+.idea/*
+
+# Eclipse
+.pydevproject
+.project
+.metadata
+.settings/
+
+# Vim
+*.swp
+.ropeproject/
+
+# Test cache data
+/.cache
+
+# html mails
+*local*.html
+
+.ssh/
+.cache/
+
+# env files
+.env
+
+# coverage file
+.coverage
