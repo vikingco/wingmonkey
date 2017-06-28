@@ -142,7 +142,10 @@ def test_list_read_no_id(expected_list, expected_lists):
 
 
 def test_list_update(expected_list):
-    pass
+    mailchimp_list = List(**expected_list)
+    with Mocker() as request_mock:
+        request_mock.patch('{}/lists/{}'.format(MAILCHIMP_ROOT, expected_list['id']), text=dumps(expected_list))
+        assert compare_result(list_serializer.update(mailchimp_list), expected_list)
 
 
 def test_list_delete(expected_list):

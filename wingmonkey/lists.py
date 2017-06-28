@@ -1,3 +1,4 @@
+from logging import getLogger
 from marshmallow import Schema, fields
 
 from wingmonkey.mailchimp_session import MailChimpSession
@@ -6,6 +7,7 @@ from wingmonkey.enums import VISIBILITY_PRIVATE
 
 from wingmonkey.settings import DEFAULT_PERMISSION_REMINDER, CAMPAIGN_DEFAULTS, DEFAULT_CONTACT
 
+logger = getLogger(__name__)
 session = MailChimpSession()
 
 
@@ -44,27 +46,45 @@ class ListSerializer(Schema):
         # as we can not know the correct values of certain keys yet before creation on the API side( eg id ).
         # It also prevents unwanted overwriting.
         self.exclude = instance.empty_fields
+        self._update_fields()
 
         response = session.post('lists', json=self.dumps(instance).data)
         if response:
+            self.exclude = ()
+            self._update_fields()
             return List(**self.load(response.json()).data)
 
     def read(self, list_id=None):
         """
+        :param list_id: id of List instance
         get list from mailchimp server and update object instance attributes
         :return: updated MailChimpList instance
         """
-        self.exclude = None
-
         # If this instance doesn't have an id yet we'll get the first list we find on the server
         if list_id is None:
-            list_id = session.get('lists').json()['lists'][0]['id']
+            try:
+                list_id = session.get('lists').json()['lists'][0]['id']
+            except IndexError:
+                logger.warning('No lists found on server')
+                return
 
-        response = session.get('lists/{}'.format(list_id))
+        response = session.get('lists/{}'.format(list_id), )
         return List(**self.load(response.json()).data)
 
     def update(self, instance):
-        raise NotImplemented
+        """
+        :param instance: List instance
+        :return: updated MailChimpList instance
+        """
+        self.only = ('name', 'contact', 'permission_reminder', 'use_archive_bar', 'campaign_defaults',
+                     'notify_on_subscribe', 'email_type_option', 'visibility')
+        self._update_fields()
+
+        response = session.patch('lists/{}'.format(instance.id), json=self.dumps(instance).data)
+        if response:
+            self.only = ()
+            self._update_fields()
+            return List(**self.load(response.json()).data)
 
     def delete(self, instance):
         """
