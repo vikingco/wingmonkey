@@ -24,7 +24,7 @@ class MailChimpSession:
         :param method: HTTPrequest method
         :param url: url for the request
         :param json: json data
-        :param query_parameters: query parameters for get request
+        :param query_parameters: dict: query parameters for get request
         :return:
         """
 

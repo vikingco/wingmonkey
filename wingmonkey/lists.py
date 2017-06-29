@@ -49,18 +49,18 @@ class ListSerializer(Schema):
         self._update_fields()
 
         response = session.post('lists', json=self.dumps(instance).data)
+        self.exclude = ()
+        self._update_fields()
         if response:
-            self.exclude = ()
-            self._update_fields()
             return List(**self.load(response.json()).data)
 
     def read(self, list_id=None):
         """
-        :param list_id: id of List instance
         get list from mailchimp server and update object instance attributes
+        :param list_id: id of List instance
         :return: updated MailChimpList instance
         """
-        # If this instance doesn't have an id yet we'll get the first list we find on the server
+        # If no id is given we'll get the first list we find on the server
         if list_id is None:
             try:
                 list_id = session.get('lists').json()['lists'][0]['id']
@@ -68,7 +68,7 @@ class ListSerializer(Schema):
                 logger.warning('No lists found on server')
                 return
 
-        response = session.get('lists/{}'.format(list_id), )
+        response = session.get('lists/{}'.format(list_id))
         return List(**self.load(response.json()).data)
 
     def update(self, instance):
@@ -81,9 +81,9 @@ class ListSerializer(Schema):
         self._update_fields()
 
         response = session.patch('lists/{}'.format(instance.id), json=self.dumps(instance).data)
+        self.only = ()
+        self._update_fields()
         if response:
-            self.only = ()
-            self._update_fields()
             return List(**self.load(response.json()).data)
 
     def delete(self, instance):

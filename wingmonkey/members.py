@@ -1,0 +1,138 @@
+from logging import getLogger
+from marshmallow import Schema, fields
+
+from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.mailchimp_base import MailChimpData
+from wingmonkey.enums import MemberStatus
+
+logger = getLogger(__name__)
+session = MailChimpSession()
+
+
+class MemberSerializer(Schema):
+    """
+    class representing member schema in mailchimp
+    inherits from marshmallow Schema https://marshmallow.readthedocs.io/en/latest/quickstart.html#declaring-schemas
+    """
+
+    id = fields.Str()
+    email_address = fields.Str()
+    unique_email_id = fields.Email()
+    email_type = fields.Str()
+    status = fields.Str()
+    unsubscribe_reason = fields.Str()
+    merge_fields = fields.Dict()
+    interests = fields.Dict()
+    stats = fields.Dict()
+    ip_signup = fields.Str()
+    ip_opt = fields.Str()
+    timestamp_opt = fields.Str()
+    member_rating = fields.Int()
+    last_changed = fields.Str()
+    language = fields.Str()
+    vip = fields.Boolean()
+    email_client = fields.Str()
+    location = fields.Dict()
+    last_note = fields.Dict()
+    list_id = fields.Str()
+    _links = fields.List(cls_or_instance=fields.Dict())
+
+    def create(self, list_id, instance):
+        """
+        :param list id: str: id of list to add this member to
+        :param instance: Member:  instance to be created on server
+        :return: Member:  instance created on mailchimp server
+        """
+        self.exclude = instance.empty_fields
+        self._update_fields()
+
+        response = session.post('lists/{}/members'.format(list_id), json=self.dumps(instance).data)
+        if response:
+            self.exclude = ()
+            self._update_fields()
+            return Member(**self.load(response).data)
+
+    def read(self, list_id, member_id=None, query=None):
+        """
+        :param list_id: str: List id
+        :param member_id: str: Member id
+        :param query: dict: query parameters
+        :return: Member instance
+        """
+        # If no id is given we'll get the first member of the first list we find on the server
+        if member_id is None:
+            try:
+                member_id = session.get('lists/{}/members'.format(list_id), query_parameters=query).json()['members'][0]['id']
+            except IndexError:
+                logger.warning('No members found for list %s', list_id)
+                return
+
+        response = session.get('lists/{}/members/{}'.format(list_id, member_id), query_parameters=query)
+        return Member(**self.load(response.json()).data)
+
+    def update(self):
+        raise NotImplemented
+
+    def delete(self):
+        raise NotImplemented
+
+
+class Member(MailChimpData):
+
+    def __init__(self, id=None, email_address=None, unique_email_id=None, email_type=None,
+                 status=MemberStatus.SUBSCRIBED, unsubscribe_reason=None, merge_fields=None, interests=None, stats=None,
+                 ip_signup=None, ip_opt=None, timestamp_opt=None, member_rating=None, last_changed=None, language='en',
+                 vip=False, email_client=None, location=None, last_note=None, list_id=None, _links=None):
+
+        self.id = id
+        self.email_address = email_address
+        self.unique_email_id = unique_email_id
+        self.email_type = email_type
+        self.status = status
+        self.unsubscribe_reason = unsubscribe_reason
+        self.merge_fields = merge_fields
+        self.interests = interests
+        self.stats = stats
+        self.ip_signup = ip_signup
+        self.ip_opt = ip_opt
+        self.timestamp_opt = timestamp_opt
+        self.member_rating = member_rating
+        self.last_changed = last_changed
+        self.language = language
+        self.vip = vip
+        self.email_client = email_client
+        self.location = location
+        self.last_note = last_note
+        self.list_id = list_id
+        self._links = _links
+
+
+class MembersSerializer(Schema):
+
+    members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
+    list_id = fields.Str()
+    total_items = fields.Int()
+    _links = fields.List(cls_or_instance=fields.Dict())
+
+    def create(self):
+        raise NotImplemented
+
+    def read(self, list_id, query=None):
+        """
+        :param list_id: str: List id
+        :param query: dict: query parameters
+        :return: Members instance
+        """
+
+        response = session.get('lists/{}/members'.format(list_id), query_parameters=query)
+        return Members(**self.load(response.json()).data)
+
+
+class Members(MailChimpData):
+
+    def __init__(self, members=None, list_id=None, total_items=0, _links=None):
+
+        self.members = members
+        self.list_id = list_id
+        self.total_items = total_items
+        self._links = _links
