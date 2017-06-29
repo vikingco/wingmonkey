@@ -9,3 +9,11 @@ class MemberStatus(object):
     CLEANED = 'cleaned'
     PENDING = 'pending'
     TRANSACTIONAL = 'transactional'
+
+
+class HttpMethods(object):
+
+    GET = 'GET'
+    POST = 'POST'
+    PATCH = 'PATCH'
+    DELETE = 'DELETE'

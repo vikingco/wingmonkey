@@ -47,10 +47,10 @@ class MemberSerializer(Schema):
         self._update_fields()
 
         response = session.post('lists/{}/members'.format(list_id), json=self.dumps(instance).data)
+        self.exclude = ()
+        self._update_fields()
         if response:
-            self.exclude = ()
-            self._update_fields()
-            return Member(**self.load(response).data)
+            return Member(**self.load(response.json()).data)
 
     def read(self, list_id, member_id=None, query=None):
         """
@@ -62,7 +62,8 @@ class MemberSerializer(Schema):
         # If no id is given we'll get the first member of the first list we find on the server
         if member_id is None:
             try:
-                member_id = session.get('lists/{}/members'.format(list_id), query_parameters=query).json()['members'][0]['id']
+                member_id = session.get('lists/{}/members'.format(list_id),
+                                        query_parameters=query).json()['members'][0]['id']
             except IndexError:
                 logger.warning('No members found for list %s', list_id)
                 return
@@ -70,11 +71,28 @@ class MemberSerializer(Schema):
         response = session.get('lists/{}/members/{}'.format(list_id, member_id), query_parameters=query)
         return Member(**self.load(response.json()).data)
 
-    def update(self):
-        raise NotImplemented
+    def update(self, list_id, instance, query=None):
+        """
+        :param list_id: str: List id
+        :param instance: Member
+        :param query: dict: query parameters
+        :return: updated Member Instance
+        """
+        # limit serializer to fields that are accepted as PATCH parameters
+        self.only = ('email_address', 'email_type', 'status', 'merge_fields', 'interests', 'language', 'vip',
+                     'location')
+        self._update_fields()
 
-    def delete(self):
-        raise NotImplemented
+        response = session.patch('lists/{}/members/{}'.format(list_id, instance.id), json=self.dumps(instance).data,
+                                 query_parameters=query)
+        self.only = ()
+        self._update_fields()
+        if response:
+            return Member(**self.load(response.json()).data)
+
+    def delete(self, list_id, member_id):
+        if session.delete('lists/{}/members/{}'.format(list_id, member_id)):
+            return True
 
 
 class Member(MailChimpData):
@@ -113,9 +131,6 @@ class MembersSerializer(Schema):
     list_id = fields.Str()
     total_items = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def create(self):
-        raise NotImplemented
 
     def read(self, list_id, query=None):
         """
