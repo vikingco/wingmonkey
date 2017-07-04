@@ -4,8 +4,7 @@ from marshmallow import Schema, fields
 from wingmonkey.enums import HttpMethods
 from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
-from wingmonkey.lists import List, ListSerializer, Lists, ListsSerializer
-from wingmonkey.members import Member, MemberSerializer, Members, MembersSerializer
+from wingmonkey.memberscollection import MemberSerializer
 
 session = MailChimpSession()
 
@@ -67,12 +66,12 @@ class BatchOperation(MailChimpData):
         self.body = body
 
 
-class BatchOperationsSerializer(Schema):
+class BatchOperationsCollectionSerializer(Schema):
 
     operations = fields.List(cls_or_instance=fields.Nested(BatchOperationSerializer))
 
 
-class BatchOperations(MailChimpData):
+class BatchOperationsCollection(MailChimpData):
 
     def __init__(self, operations=None):
 
@@ -84,7 +83,7 @@ def _batch_members_operation(list_id, members_list, method):
     path = 'lists/{}/members'.format(list_id)
     member_serializer = MemberSerializer()
     batch_operation_resource_serializer = BatchOperationResourceSerializer()
-    batch_operations_serializer = BatchOperationsSerializer()
+    batch_operations_serializer = BatchOperationsCollectionSerializer()
     operations = list()
 
     if method == HttpMethods.PATCH:
@@ -105,7 +104,7 @@ def _batch_members_operation(list_id, members_list, method):
 
         operations.append(BatchOperation(method=method, path=path, body=member_serializer.dumps(member).data))
 
-    batch_operations = BatchOperations(operations)
+    batch_operations = BatchOperationsCollection(operations)
     response = session.post('batches', json=batch_operations_serializer.dumps(batch_operations).data)
 
     return BatchOperationResource(**batch_operation_resource_serializer.load(response.json()).data)

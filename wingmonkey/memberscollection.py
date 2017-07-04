@@ -125,7 +125,7 @@ class Member(MailChimpData):
         self._links = _links
 
 
-class MembersSerializer(Schema):
+class MembersCollectionSerializer(Schema):
 
     members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
     list_id = fields.Str()
@@ -140,10 +140,10 @@ class MembersSerializer(Schema):
         """
 
         response = session.get('lists/{}/members'.format(list_id), query_parameters=query)
-        return Members(**self.load(response.json()).data)
+        return MembersCollection(**self.load(response.json()).data)
 
 
-class Members(MailChimpData):
+class MembersCollection(MailChimpData):
 
     def __init__(self, members=None, list_id=None, total_items=0, _links=None):
 

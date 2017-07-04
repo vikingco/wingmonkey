@@ -2,13 +2,13 @@ from requests_mock import Mocker
 from pytest import fixture
 from json import dumps
 
-from wingmonkey.lists import List, Lists, ListSerializer, ListsSerializer
+from wingmonkey.listscollection import List, ListsCollection, ListSerializer, ListsCollectionSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import VISIBILITY_PRIVATE
 
 
 list_serializer = ListSerializer()
-lists_serializer = ListsSerializer()
+lists_serializer = ListsCollectionSerializer()
 
 
 @fixture
@@ -160,6 +160,6 @@ def test_lists_read(expected_lists):
     with Mocker() as request_mock:
         request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(expected_lists))
         mailchimp_lists = lists_serializer.read()
-        expected_lists = Lists(**expected_lists)
+        expected_lists = ListsCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
         assert mailchimp_lists.total_items == expected_lists.total_items

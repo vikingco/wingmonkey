@@ -128,16 +128,16 @@ class List(MailChimpData):
         self._links = _links
 
 
-class ListsSerializer(Schema):
+class ListsCollectionSerializer(Schema):
     lists = fields.List(cls_or_instance=fields.Nested(ListSerializer))
     total_items = fields.Int()
 
     def read(self):
         response = session.get('lists')
-        return Lists(**self.load(response.json()).data)
+        return ListsCollection(**self.load(response.json()).data)
 
 
-class Lists(MailChimpData):
+class ListsCollection(MailChimpData):
     """
     class representing multiple mailchimp lists
     """
