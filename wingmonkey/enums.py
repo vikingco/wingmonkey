@@ -17,3 +17,18 @@ class HttpMethods(object):
     POST = 'POST'
     PATCH = 'PATCH'
     DELETE = 'DELETE'
+
+
+class MergeFieldTypes(object):
+
+    TEXT = 'text'
+    NUMBER = 'number'
+    ADDRESS = 'address'
+    PHONE = 'phone'
+    DATE = 'date'
+    URL = 'url'
+    IMAGEURL = 'imageurl'
+    RADIO = 'radio'
+    DROPDOWN = 'dropdown'
+    BIRTHDAY = 'birthday'
+    ZIP = 'zip'
