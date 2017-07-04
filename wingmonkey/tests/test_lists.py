@@ -2,7 +2,7 @@ from requests_mock import Mocker
 from pytest import fixture
 from json import dumps
 
-from wingmonkey.listscollection import List, ListsCollection, ListSerializer, ListsCollectionSerializer
+from wingmonkey.lists import List, ListsCollection, ListSerializer, ListsCollectionSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import VISIBILITY_PRIVATE
 

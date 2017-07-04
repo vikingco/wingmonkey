@@ -3,8 +3,8 @@ from pytest import fixture
 from json import dumps
 from logging import WARNING
 
-from wingmonkey.memberscollection import Member, MemberSerializer, MembersCollection, MembersCollectionSerializer
-from wingmonkey.listscollection import ListSerializer
+from wingmonkey.members import Member, MemberSerializer, MembersCollection, MembersCollectionSerializer
+from wingmonkey.lists import ListSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import MemberStatus
 

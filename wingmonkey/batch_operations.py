@@ -4,7 +4,7 @@ from marshmallow import Schema, fields
 from wingmonkey.enums import HttpMethods
 from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
-from wingmonkey.memberscollection import MemberSerializer
+from wingmonkey.members import MemberSerializer
 
 session = MailChimpSession()
 
