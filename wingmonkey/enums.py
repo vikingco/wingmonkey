@@ -32,3 +32,24 @@ class MergeFieldTypes(object):
     DROPDOWN = 'dropdown'
     BIRTHDAY = 'birthday'
     ZIP = 'zip'
+
+
+MEMBER_EXPORT_KEYS_MAPPING = {
+    'Email Address': 'email_address',
+    'MEMBER_RATING': 'member_rating',
+    'OPTIN_TIME': 'timestamp_opt',
+    'OPTIN_IP': 'ip_opt',
+    'CONFIRM_TIME': 'confirm_time',
+    'CONFIRM_IP': 'ip_signup',
+    'LATITUDE': 'latitude',
+    'LONGITUDE': 'longitude',
+    'GMTOFF': 'gmtoff',
+    'DSTOFF': 'dstoff',
+    'TIMEZONE': 'timezone',
+    'CC': 'country_code',
+    'REGION': 'region',
+    'LAST_CHANGED': 'last_changed',
+    'LEID': 'leid',
+    'EUID': 'euid',
+    'NOTES': 'notes'
+}

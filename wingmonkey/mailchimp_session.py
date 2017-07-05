@@ -13,12 +13,13 @@ class MailChimpSession:
     class representing a mailchimp api session and it's available methods
     """
 
-    def __init__(self):
+    def __init__(self, api_endpoint=MAILCHIMP_ROOT):
 
         self.auth = HTTPBasicAuth('mailchimpuser', MAILCHIMP_API_KEY)
         self.session = Session()
+        self.api_endpoint = api_endpoint
 
-    def _request(self, method, url=None, json=None, query_parameters=None):
+    def _request(self, method, url=None, json=None, query_parameters=None, stream=False):
         """
 
         :param method: HTTPrequest method
@@ -32,9 +33,9 @@ class MailChimpSession:
             url = ''
 
         try:
-            logger.debug('%s : %s/%s json=%s param=%s', method, MAILCHIMP_ROOT, url, json, query_parameters)
-            response = method('{}/{}'.format(MAILCHIMP_ROOT, url), headers={'Accept': 'application/json'},
-                              data=json, params=query_parameters, auth=self.auth)
+            logger.warning('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
+            response = method('{}/{}'.format(self.api_endpoint, url), headers={'Accept': 'application/json'},
+                              data=json, params=query_parameters, auth=self.auth, stream=stream)
 
             response.raise_for_status()
             return response
@@ -45,8 +46,8 @@ class MailChimpSession:
         except exceptions.ConnectionError:
             raise ClientException(503, 'Can not connect to server')
 
-    def get(self, url=None, json=None, query_parameters=None):
-        return self._request(self.session.get, url, json, query_parameters)
+    def get(self, url=None, json=None, query_parameters=None, stream=False):
+        return self._request(self.session.get, url, json, query_parameters, stream=stream)
 
     def post(self, url=None, json=None, query_parameters=None):
         return self._request(self.session.post, url, json, query_parameters)

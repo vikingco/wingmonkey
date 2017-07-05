@@ -132,8 +132,8 @@ class ListsCollectionSerializer(Schema):
     lists = fields.List(cls_or_instance=fields.Nested(ListSerializer))
     total_items = fields.Int()
 
-    def read(self):
-        response = session.get('lists')
+    def read(self, count=10):
+        response = session.get('lists', query_parameters=dict(count=count))
         return ListsCollection(**self.load(response.json()).data)
 
 

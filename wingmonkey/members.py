@@ -21,6 +21,8 @@ class MemberSerializer(Schema):
     email_type = fields.Str()
     status = fields.Str()
     unsubscribe_reason = fields.Str()
+    unsubscribe_campaign_id = fields.Str()
+    unsubscribe_campaign_title = fields.Str()
     merge_fields = fields.Dict()
     interests = fields.Dict()
     stats = fields.Dict()
@@ -98,9 +100,10 @@ class MemberSerializer(Schema):
 class Member(MailChimpData):
 
     def __init__(self, id=None, email_address=None, unique_email_id=None, email_type=None,
-                 status=MemberStatus.SUBSCRIBED, unsubscribe_reason=None, merge_fields=None, interests=None, stats=None,
-                 ip_signup=None, ip_opt=None, timestamp_opt=None, member_rating=None, last_changed=None, language='en',
-                 vip=False, email_client=None, location=None, last_note=None, list_id=None, _links=None):
+                 status=MemberStatus.SUBSCRIBED, unsubscribe_reason=None, unsubscribe_campaign_id=None,
+                 unsubscribe_campaign_title=None, merge_fields=None, interests=None, stats=None, ip_signup=None,
+                 ip_opt=None, timestamp_opt=None, member_rating=None, last_changed=None, language='en', vip=False,
+                 email_client=None, location=None, last_note=None, list_id=None, _links=None):
 
         self.id = id
         self.email_address = email_address
@@ -108,6 +111,8 @@ class Member(MailChimpData):
         self.email_type = email_type
         self.status = status
         self.unsubscribe_reason = unsubscribe_reason
+        self.unsubscribe_campaign_id = unsubscribe_campaign_id
+        self.unsubscribe_campaign_title = unsubscribe_campaign_title
         self.merge_fields = merge_fields
         self.interests = interests
         self.stats = stats
