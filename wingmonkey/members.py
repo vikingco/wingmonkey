@@ -1,9 +1,14 @@
+from asyncio import get_event_loop, gather, Queue, sleep as async_sleep
+from math import ceil
+from time import sleep
+
 from logging import getLogger
 from marshmallow import Schema, fields
 
-from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.mailchimp_session import MailChimpSession, ClientException
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.enums import MemberStatus
+from wingmonkey.lists import ListSerializer
 
 logger = getLogger(__name__)
 session = MailChimpSession()
@@ -143,7 +148,6 @@ class MembersCollectionSerializer(Schema):
         :param query: dict: query parameters
         :return: Members instance
         """
-
         response = session.get('lists/{}/members'.format(list_id), query_parameters=query)
         return MembersCollection(**self.load(response.json()).data)
 
@@ -156,3 +160,68 @@ class MembersCollection(MailChimpData):
         self.list_id = list_id
         self.total_items = total_items
         self._links = _links
+
+
+async def _get_members_task(list_id, count, offset, extra_params=None, retry=3):
+    query_parameters = dict(count=count, offset=offset)
+    if extra_params:
+        query_parameters.update(extra_params)
+
+    while retry > 0:
+        try:
+            response = await session.async_get('lists/{}/members'.format(list_id),
+                                               query_parameters=query_parameters)
+            return response
+        except ClientException as e:
+            logger.warning('chunk for list %s failed. Error: %s , %i retries left', list_id, e, retry)
+            retry -= 1
+            await async_sleep(5)
+
+
+async def _get_chunk(queue, responses):
+    while not queue.empty():
+        params = await queue.get()
+        responses.append(await _get_members_task(*params))
+
+
+async def _get_all_members_async(queue, list_id, count, max_chunks, total_member_count=0, extra_params=None, retry=3):
+
+    tasks = []
+    responses = []
+
+    for i in range(0, ceil(total_member_count / count)+1):
+        queue.put_nowait([list_id, count, i * count, extra_params, retry])
+
+    for chunk in range(1, max_chunks):
+        tasks.append(_get_chunk(queue, responses))
+
+    await gather(*tasks)
+    return responses
+
+
+def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=None, retry=3):
+    # get list total member count
+    while retry > 0:
+        try:
+            total_member_count = ListSerializer().read(list_id).stats['member_count']
+        except ClientException as e:
+            logger.warning('getting member count for list %s failed. Error: %s , %i retries left', list_id, e, retry)
+            retry -= 1
+            sleep(5)
+        else:
+            count = calculate_count(total_member_count, max_count, max_chunks)
+            loop = get_event_loop()
+            queue = Queue()
+            return loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
+                                                                  max_chunks=max_chunks,
+                                                                  total_member_count=total_member_count,
+                                                                  extra_params=extra_params, retry=retry))
+
+
+def calculate_count(total_member_count, max_count, max_chunks):
+
+    if (total_member_count / (max_count*max_chunks)) > 1:
+        return max_count
+    else:
+        count = ceil(total_member_count/max_chunks)
+        return count if count > 0 else 1
