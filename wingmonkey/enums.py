@@ -34,6 +34,13 @@ class MergeFieldTypes(object):
     ZIP = 'zip'
 
 
+class SegmentFieldTypes(object):
+
+    SAVED = 'saved'
+    STATIC = 'static'
+    FUZZY = 'fuzzy'
+
+
 MEMBER_EXPORT_KEYS_MAPPING = {
     'Email Address': 'email_address',
     'MEMBER_RATING': 'member_rating',
