@@ -39,7 +39,8 @@ class MailChimpSession(object):
         :param url: url for the request
         :param json: json data
         :param query_parameters: dict: query parameters for get request
-        :return:
+        :param stream return stream response
+        :return: HTTPresponse
         """
         auth = HTTPBasicAuth('mailchimpuser', MAILCHIMP_API_KEY)
 
@@ -59,14 +60,34 @@ class MailChimpSession(object):
         except exceptions.ConnectionError:
             raise ClientException(503, 'Can not connect to server')
 
+    def get(self, url=None, json=None, query_parameters=None, stream=False, async_request=False):
+        if async_request:
+            return loop.run_until_complete(self.async_get(url, json, query_parameters))
+        return self._request(self.session.get, url=url, json=json, query_parameters=query_parameters, stream=stream)
+
+    def post(self, url=None, json=None, query_parameters=None, async_request=False):
+        if async_request:
+            return loop.run_until_complete(self.async_post(url, json, query_parameters))
+        return self._request(self.session.post, url=url, json=json, query_parameters=query_parameters)
+
+    def patch(self, url=None, json=None, query_parameters=None, async_request=False):
+        if async_request:
+            return loop.run_until_complete(self.async_patch(url, json, query_parameters))
+        return self._request(self.session.patch, url=url, json=json, query_parameters=query_parameters)
+
+    def delete(self, url=None, json=None, query_parameters=None, async_request=False):
+        if async_request:
+            return loop.run_until_complete(self.async_delete(url, json, query_parameters))
+        return self._request(self.session.delete, url=url, json=json, query_parameters=query_parameters)
+
     async def _async_request(self, method, url=None, json=None, query_parameters=None):
         """
-
+        Method to make asynchronous requests (using aiohttp)
         :param method: HTTPrequest method
         :param url: url for the request
         :param json: json data
         :param query_parameters: dict: query parameters for get request
-        :return:
+        :return: Coroutine
         """
 
         auth = BasicAuth('mailchimpuser', MAILCHIMP_API_KEY)
@@ -104,26 +125,6 @@ class MailChimpSession(object):
 
     async def async_delete(self, url=None, json=None, query_parameters=None):
         return await self._async_request(self.async_session.delete, url, json, query_parameters)
-
-    def get(self, url=None, json=None, query_parameters=None, stream=False, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_get(url, json, query_parameters))
-        return self._request(self.session.get, url=url, json=json, query_parameters=query_parameters, stream=stream)
-
-    def post(self, url=None, json=None, query_parameters=None, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_post(url, json, query_parameters))
-        return self._request(self.session.post, url=url, json=json, query_parameters=query_parameters)
-
-    def patch(self, url=None, json=None, query_parameters=None, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_patch(url, json, query_parameters))
-        return self._request(self.session.patch, url=url, json=json, query_parameters=query_parameters)
-
-    def delete(self, url=None, json=None, query_parameters=None, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_delete(url, json, query_parameters))
-        return self._request(self.session.delete, url=url, json=json, query_parameters=query_parameters)
 
 
 class ClientException(Exception):
