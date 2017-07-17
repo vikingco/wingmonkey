@@ -3,13 +3,17 @@ from requests.exceptions import Timeout, ConnectionError
 from json import dumps
 from pytest import raises, fixture
 
-from wingmonkey.settings import MAILCHIMP_ROOT
+from wingmonkey.settings import MAILCHIMP_ROOT, MAILCHIMP_API_KEY
 from wingmonkey.mailchimp_session import MailChimpSession, ClientException
 
 
 @fixture
 def mailchimp_session():
     return MailChimpSession()
+
+
+def test_use_apikey_from_pytest_ini():
+    assert MAILCHIMP_API_KEY == 'testingkey-test123'
 
 
 def test_mailchimpsession_get(mailchimp_session):
