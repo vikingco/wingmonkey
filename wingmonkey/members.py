@@ -203,13 +203,15 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
     # get list total member count
     while retry > 0:
         try:
-            total_member_count = ListSerializer().read(list_id).stats['member_count']
+            total_member_count = MembersCollectionSerializer().read(list_id, query=extra_params).total_items
         except ClientException as e:
             logger.warning('getting member count for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1
             sleep(5)
         else:
             count = _calculate_count(total_member_count, max_count, max_chunks)
+            if count <= 0:
+                return
             loop = get_event_loop()
             queue = Queue()
             return loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
