@@ -3,7 +3,7 @@ from marshmallow import Schema, fields
 
 from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
-from wingmonkey.enums import VISIBILITY_PRIVATE
+from wingmonkey.enums import VISIBILITY_PRIVATE, DEFAULT_RECORD_COUNT
 
 from wingmonkey.settings import DEFAULT_PERMISSION_REMINDER, CAMPAIGN_DEFAULTS, DEFAULT_CONTACT
 
@@ -132,7 +132,7 @@ class ListsCollectionSerializer(Schema):
     lists = fields.List(cls_or_instance=fields.Nested(ListSerializer))
     total_items = fields.Int()
 
-    def read(self, count=10, extra_parameters=None):
+    def read(self, count=DEFAULT_RECORD_COUNT, extra_parameters=None):
         query_parameters = dict(count=count)
         if extra_parameters:
             query_parameters.update(extra_parameters)

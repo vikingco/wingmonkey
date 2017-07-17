@@ -209,7 +209,7 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
             retry -= 1
             sleep(5)
         else:
-            count = calculate_count(total_member_count, max_count, max_chunks)
+            count = _calculate_count(total_member_count, max_count, max_chunks)
             loop = get_event_loop()
             queue = Queue()
             return loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
@@ -218,7 +218,7 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
                                                                   extra_params=extra_params, retry=retry))
 
 
-def calculate_count(total_member_count, max_count, max_chunks):
+def _calculate_count(total_member_count, max_count, max_chunks):
 
     if (total_member_count / (max_count*max_chunks)) > 1:
         return max_count

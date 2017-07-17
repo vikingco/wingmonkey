@@ -1,5 +1,6 @@
 from requests_mock import Mocker
 from pytest import fixture
+from logging import WARNING
 from json import dumps
 
 from wingmonkey.lists import List, ListsCollection, ListSerializer, ListsCollectionSerializer
@@ -139,6 +140,15 @@ def test_list_read_no_id(expected_list, expected_lists):
         request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(expected_lists))
         request_mock.get('{}/lists/{}'.format(MAILCHIMP_ROOT, expected_list['id']), text=dumps(expected_list))
         assert compare_result(list_serializer.read(), expected_list)
+
+
+def test_list_read_no_id_no_lists(caplog):
+    empty_list_collection = dict(lists=[])
+    caplog.set_level(WARNING)
+    with Mocker() as request_mock:
+        request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(empty_list_collection))
+        list_serializer.read()
+        assert 'No lists found on server' in caplog.text
 
 
 def test_list_update(expected_list):

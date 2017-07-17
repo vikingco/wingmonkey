@@ -27,13 +27,13 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
     query_parameters = dict(apikey=MAILCHIMP_API_KEY, id=list_id)
 
     if status:
-        query_parameters.update(status=status)
+        query_parameters.update(dict(status=status))
     if segment:
-        query_parameters.update(segment=segment)
+        query_parameters.update(dict(segment=segment))
     if since:
-        query_parameters.update(since=datetime.strptime(since, '%Y-%m-%d %H:%M:%S'))
+        query_parameters.update(dict(since=datetime.strftime(since, '%Y-%m-%d %H:%M:%S')))
     if hashed:
-        query_parameters.update(hashed='sha256')
+        query_parameters.update(dict(hashed='sha256'))
 
     members = list()
     merge_fields = MergeFieldsCollectionSerializer().read(list_id)
@@ -59,9 +59,9 @@ def _convert_member_export_to_member_object(member_export_dict, list_id, status,
     """
 
     # generate member id md5 hash
-    hash = md5()
-    hash.update(member_export_dict['Email Address'].lower().encode())
-    member_id = hash.hexdigest()
+    member_hash = md5()
+    member_hash.update(member_export_dict['Email Address'].lower().encode())
+    member_id = member_hash.hexdigest()
 
     # extract and map merge fields
     member_merge_fields = dict()

@@ -55,14 +55,12 @@ class BatchOperationSerializer(Schema):
 
 class BatchOperation(MailChimpData):
 
-    def __init__(self, method=None, path=None, operation_id=uuid4(), params=None, body=None):
+    def __init__(self, method=None, path=None, operation_id=None, params=None, body=None):
 
         self.method = method
         self.path = path
-        self.operation_id = operation_id
-        if params is None:
-            params = dict()
-        self.params = params
+        self.operation_id = operation_id or uuid4()
+        self.params = params or dict()
         self.body = body
 
 
