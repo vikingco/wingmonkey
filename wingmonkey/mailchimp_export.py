@@ -18,7 +18,7 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
     
     :param list_id: string: id of list to get members from
     :param status: string: status of members to get (subscribed, unscubscribed, cleaned, pending, transactional)
-    :param segment: string: id of segment to get members from
+    :param segment: int: id of segment to get members from
     :param since: datetime: only return members whose data has changed since GMT timestamp
     :param hashed: string: instead of full list data, return a hashed list of email addresses, only 'sha256' supported
     :return: list of Member instances
@@ -44,7 +44,11 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
         for line in lines:
             values = loads(line)
             member_export_dict = OrderedDict(zip(header, values))
-            members.append(_convert_member_export_to_member_object(member_export_dict, list_id, status, merge_fields))
+            if not hashed:
+                members.append(_convert_member_export_to_member_object(member_export_dict, list_id, status,
+                                                                       merge_fields))
+            else:
+                members.append(member_export_dict['EMAIL_HASH'])
 
     return members
 
