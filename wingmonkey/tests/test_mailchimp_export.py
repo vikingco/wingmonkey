@@ -5,7 +5,7 @@ from datetime import datetime
 from logging import WARNING
 from requests import Response
 
-from wingmonkey.merge_fields import MergeFieldsCollectionSerializer
+from wingmonkey.merge_fields import MergeFieldCollectionSerializer
 from wingmonkey.settings import MAILCHIMP_EXPORT_ROOT, MAILCHIMP_ROOT, MAILCHIMP_API_KEY
 from wingmonkey.enums import MemberStatus
 from wingmonkey.mailchimp_export import get_all_members

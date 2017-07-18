@@ -86,7 +86,7 @@ class Segment(MailChimpData):
         self._links = _links
 
 
-class SegmentsCollectionSerializer(Schema):
+class SegmentCollectionSerializer(Schema):
 
     segments = fields.List(cls_or_instance=fields.Nested(SegmentSerializer))
     list_id = fields.Str()
@@ -100,10 +100,10 @@ class SegmentsCollectionSerializer(Schema):
         """
 
         response = session.get('lists/{}/segments'.format(list_id))
-        return SegmentsCollection(**self.load(response.json()).data)
+        return SegmentCollection(**self.load(response.json()).data)
 
 
-class SegmentsCollection(MailChimpData):
+class SegmentCollection(MailChimpData):
 
     def __init__(self, segments=None, list_id=None, total_items=0, _links=None):
 

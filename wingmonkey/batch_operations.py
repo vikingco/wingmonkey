@@ -64,12 +64,12 @@ class BatchOperation(MailChimpData):
         self.body = body
 
 
-class BatchOperationsCollectionSerializer(Schema):
+class BatchOperationCollectionSerializer(Schema):
 
     operations = fields.List(cls_or_instance=fields.Nested(BatchOperationSerializer))
 
 
-class BatchOperationsCollection(MailChimpData):
+class BatchOperationCollection(MailChimpData):
 
     def __init__(self, operations=None):
 
@@ -81,7 +81,7 @@ def _batch_members_operation(list_id, members_list, method):
     path = 'lists/{}/members'.format(list_id)
     member_serializer = MemberSerializer()
     batch_operation_resource_serializer = BatchOperationResourceSerializer()
-    batch_operations_serializer = BatchOperationsCollectionSerializer()
+    batch_operations_serializer = BatchOperationCollectionSerializer()
     operations = list()
 
     if method == HttpMethods.PATCH:
@@ -102,7 +102,7 @@ def _batch_members_operation(list_id, members_list, method):
 
         operations.append(BatchOperation(method=method, path=path, body=member_serializer.dumps(member).data))
 
-    batch_operations = BatchOperationsCollection(operations)
+    batch_operations = BatchOperationCollection(operations)
     response = session.post('batches', json=batch_operations_serializer.dumps(batch_operations).data)
 
     return BatchOperationResource(**batch_operation_resource_serializer.load(response.json()).data)

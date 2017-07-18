@@ -128,7 +128,7 @@ class List(MailChimpData):
         self._links = _links
 
 
-class ListsCollectionSerializer(Schema):
+class ListCollectionSerializer(Schema):
     lists = fields.List(cls_or_instance=fields.Nested(ListSerializer))
     total_items = fields.Int()
 
@@ -137,10 +137,10 @@ class ListsCollectionSerializer(Schema):
         if extra_parameters:
             query_parameters.update(extra_parameters)
         response = session.get('lists', query_parameters=query_parameters)
-        return ListsCollection(**self.load(response.json()).data)
+        return ListCollection(**self.load(response.json()).data)
 
 
-class ListsCollection(MailChimpData):
+class ListCollection(MailChimpData):
     """
     class representing multiple mailchimp lists
     """

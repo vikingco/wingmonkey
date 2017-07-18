@@ -7,7 +7,7 @@ from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.settings import MAILCHIMP_EXPORT_ROOT, MAILCHIMP_API_KEY
 from wingmonkey.enums import MemberStatus, MEMBER_EXPORT_KEYS_MAPPING
 from wingmonkey.members import Member
-from wingmonkey.merge_fields import MergeFieldsCollectionSerializer
+from wingmonkey.merge_fields import MergeFieldCollectionSerializer
 
 
 session = MailChimpSession(api_endpoint=MAILCHIMP_EXPORT_ROOT)
@@ -36,7 +36,7 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
         query_parameters.update(dict(hashed='sha256'))
 
     members = list()
-    merge_fields = MergeFieldsCollectionSerializer().read(list_id)
+    merge_fields = MergeFieldCollectionSerializer().read(list_id)
 
     with session.get('list/', query_parameters=query_parameters, stream=True) as response:
         lines = response.iter_lines()

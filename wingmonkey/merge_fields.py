@@ -93,7 +93,7 @@ class MergeField(MailChimpData):
         self._links = _links
 
 
-class MergeFieldsCollectionSerializer(Schema):
+class MergeFieldCollectionSerializer(Schema):
 
     merge_fields = fields.List(cls_or_instance=fields.Nested(MergeFieldSerializer))
     list_id = fields.Str()
@@ -108,10 +108,10 @@ class MergeFieldsCollectionSerializer(Schema):
         """
 
         response = session.get('lists/{}/merge-fields'.format(list_id))
-        return MergeFieldsCollection(**self.load(response.json()).data)
+        return MergeFieldCollection(**self.load(response.json()).data)
 
 
-class MergeFieldsCollection(MailChimpData):
+class MergeFieldCollection(MailChimpData):
 
     def __init__(self, merge_fields=None, list_id=None, total_items=0, _links=None):
 

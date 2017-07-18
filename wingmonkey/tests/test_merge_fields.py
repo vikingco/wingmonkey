@@ -2,14 +2,14 @@ from requests_mock import Mocker
 from pytest import fixture
 from json import dumps
 
-from wingmonkey.merge_fields import (MergeField, MergeFieldSerializer, MergeFieldsCollection,
-                                     MergeFieldsCollectionSerializer)
+from wingmonkey.merge_fields import (MergeField, MergeFieldSerializer, MergeFieldCollection,
+                                     MergeFieldCollectionSerializer)
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import MergeFieldTypes
 
 
 merge_field_serializer = MergeFieldSerializer()
-merge_field_collection_serializer = MergeFieldsCollectionSerializer()
+merge_field_collection_serializer = MergeFieldCollectionSerializer()
 
 
 @fixture
@@ -108,7 +108,7 @@ def test_merge_field_collection_read(expected_merge_field_collection):
         request_mock.get('{}/lists/{}/merge-fields'.format(MAILCHIMP_ROOT, expected_merge_field_collection['list_id']),
                          text=dumps(expected_merge_field_collection))
         merge_field_collection = merge_field_collection_serializer.read(expected_merge_field_collection['list_id'])
-        expected_merge_fields = MergeFieldsCollection(**expected_merge_field_collection)
+        expected_merge_fields = MergeFieldCollection(**expected_merge_field_collection)
         assert (merge_field_collection.merge_fields[0]['merge_id'] ==
                 expected_merge_fields.merge_fields[0]['merge_id'])
         assert merge_field_collection.total_items == expected_merge_fields.total_items

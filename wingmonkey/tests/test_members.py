@@ -3,14 +3,14 @@ from pytest import fixture
 from json import dumps
 from logging import WARNING
 
-from wingmonkey.members import Member, MemberSerializer, MembersCollection, MembersCollectionSerializer
+from wingmonkey.members import Member, MemberSerializer, MemberCollection, MemberCollectionSerializer
 from wingmonkey.lists import ListSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import MemberStatus
 
 list_serializer = ListSerializer()
 member_serializer = MemberSerializer()
-members_serializer = MembersCollectionSerializer()
+members_serializer = MemberCollectionSerializer()
 
 
 @fixture()
@@ -149,7 +149,7 @@ def test_member_delete(expected_member):
 
 
 def test_members_read(expected_members):
-    members = MembersCollection(**expected_members)
+    members = MemberCollection(**expected_members)
     with Mocker() as request_mock:
         request_mock.get('{}/lists/{}/members'.format(MAILCHIMP_ROOT, expected_members['list_id']),
                          text=dumps(expected_members))

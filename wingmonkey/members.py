@@ -8,7 +8,6 @@ from marshmallow import Schema, fields
 from wingmonkey.mailchimp_session import MailChimpSession, ClientException
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.enums import MemberStatus
-from wingmonkey.lists import ListSerializer
 
 logger = getLogger(__name__)
 session = MailChimpSession()
@@ -135,7 +134,7 @@ class Member(MailChimpData):
         self._links = _links
 
 
-class MembersCollectionSerializer(Schema):
+class MemberCollectionSerializer(Schema):
 
     members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
     list_id = fields.Str()
@@ -149,10 +148,10 @@ class MembersCollectionSerializer(Schema):
         :return: Members instance
         """
         response = session.get('lists/{}/members'.format(list_id), query_parameters=query)
-        return MembersCollection(**self.load(response.json()).data)
+        return MemberCollection(**self.load(response.json()).data)
 
 
-class MembersCollection(MailChimpData):
+class MemberCollection(MailChimpData):
 
     def __init__(self, members=None, list_id=None, total_items=0, _links=None):
 
@@ -203,7 +202,7 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
     # get list total member count
     while retry > 0:
         try:
-            total_member_count = MembersCollectionSerializer().read(list_id, query=extra_params).total_items
+            total_member_count = MemberCollectionSerializer().read(list_id, query=extra_params).total_items
         except ClientException as e:
             logger.warning('getting member count for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1

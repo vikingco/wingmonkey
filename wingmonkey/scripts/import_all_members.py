@@ -1,7 +1,6 @@
 from datetime import datetime
-from time import sleep
 
-from wingmonkey.lists import ListsCollectionSerializer
+from wingmonkey.lists import ListCollectionSerializer
 from wingmonkey.members import get_all_members_async
 
 
@@ -15,7 +14,7 @@ def import_all_members(params=None, print_time=None, chunks=9, retry=3):
     :return: list of memberlists
     """
 
-    list_collection_serializer = ListsCollectionSerializer()
+    list_collection_serializer = ListCollectionSerializer()
 
     # get list count
     list_count = list_collection_serializer.read(count=1, extra_parameters=dict(fields=['total_items'])).total_items
