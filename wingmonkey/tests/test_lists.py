@@ -1,14 +1,15 @@
 from requests_mock import Mocker
 from pytest import fixture
+from logging import WARNING
 from json import dumps
 
-from wingmonkey.lists import List, Lists, ListSerializer, ListsSerializer
+from wingmonkey.lists import List, ListCollection, ListSerializer, ListCollectionSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import VISIBILITY_PRIVATE
 
 
 list_serializer = ListSerializer()
-lists_serializer = ListsSerializer()
+list_collection_serializer = ListCollectionSerializer()
 
 
 @fixture
@@ -141,8 +142,20 @@ def test_list_read_no_id(expected_list, expected_lists):
         assert compare_result(list_serializer.read(), expected_list)
 
 
+def test_list_read_no_id_no_lists(caplog):
+    empty_list_collection = dict(lists=[])
+    caplog.set_level(WARNING)
+    with Mocker() as request_mock:
+        request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(empty_list_collection))
+        list_serializer.read()
+        assert 'No lists found on server' in caplog.text
+
+
 def test_list_update(expected_list):
-    pass
+    mailchimp_list = List(**expected_list)
+    with Mocker() as request_mock:
+        request_mock.patch('{}/lists/{}'.format(MAILCHIMP_ROOT, expected_list['id']), text=dumps(expected_list))
+        assert compare_result(list_serializer.update(mailchimp_list), expected_list)
 
 
 def test_list_delete(expected_list):
@@ -156,7 +169,7 @@ def test_lists_read(expected_lists):
 
     with Mocker() as request_mock:
         request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(expected_lists))
-        mailchimp_lists = lists_serializer.read()
-        expected_lists = Lists(**expected_lists)
+        mailchimp_lists = list_collection_serializer.read()
+        expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
         assert mailchimp_lists.total_items == expected_lists.total_items

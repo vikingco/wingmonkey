@@ -1,4 +1,4 @@
-from pprint import PrettyPrinter
+from pprint import pformat
 
 
 class MailChimpData(object):
@@ -17,5 +17,4 @@ class MailChimpData(object):
         return tuple(empty)
 
     def __repr__(self):
-        pretty = str(PrettyPrinter(indent=4).pprint(self.__dict__))
-        return pretty
+        return pformat(self.__dict__, indent=4)

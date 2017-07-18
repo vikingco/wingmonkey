@@ -3,13 +3,17 @@ from requests.exceptions import Timeout, ConnectionError
 from json import dumps
 from pytest import raises, fixture
 
-from wingmonkey.settings import MAILCHIMP_ROOT
+from wingmonkey.settings import MAILCHIMP_ROOT, MAILCHIMP_API_KEY
 from wingmonkey.mailchimp_session import MailChimpSession, ClientException
 
 
 @fixture
 def mailchimp_session():
     return MailChimpSession()
+
+
+def test_use_apikey_from_pytest_ini():
+    assert MAILCHIMP_API_KEY == 'testingkey-test123'
 
 
 def test_mailchimpsession_get(mailchimp_session):
@@ -54,34 +58,38 @@ def test_mailchimpsession_delete(mailchimp_session):
 
 
 def test_mailchimpsession_get_params(mailchimp_session):
-    expected = 'question=everything&answer=42'
+    expected = dict(question='everything', answer='42')
+    expected_query_string = 'question=everything&answer=42'
 
     with Mocker() as request_mock:
-        request_mock.get('{}/?{}'.format(MAILCHIMP_ROOT, expected), complete_qs=True)
+        request_mock.get('{}/?{}'.format(MAILCHIMP_ROOT, expected_query_string), complete_qs=True)
         assert mailchimp_session.get(query_parameters=expected)
 
 
 def test_mailchimpsession_post_params(mailchimp_session):
-    expected = 'question=everything&answer=42'
+    expected = dict(question='everything', answer='42')
+    expected_query_string = 'question=everything&answer=42'
 
     with Mocker() as request_mock:
-        request_mock.post('{}/?{}'.format(MAILCHIMP_ROOT, expected), complete_qs=True)
+        request_mock.post('{}/?{}'.format(MAILCHIMP_ROOT, expected_query_string), complete_qs=True)
         assert mailchimp_session.post(query_parameters=expected)
 
 
 def test_mailchimpsession_patch_params(mailchimp_session):
-    expected = 'question=everything&answer=42'
+    expected = dict(question='everything', answer='42')
+    expected_query_string = 'question=everything&answer=42'
 
     with Mocker() as request_mock:
-        request_mock.patch('{}/?{}'.format(MAILCHIMP_ROOT, expected), complete_qs=True)
+        request_mock.patch('{}/?{}'.format(MAILCHIMP_ROOT, expected_query_string), complete_qs=True)
         assert mailchimp_session.patch(query_parameters=expected)
 
 
 def test_mailchimpsession_delete_params(mailchimp_session):
-    expected = 'question=everything&answer=42'
+    expected = dict(question='everything', answer='42')
+    expected_query_string = 'question=everything&answer=42'
 
     with Mocker() as request_mock:
-        request_mock.delete('{}/?{}'.format(MAILCHIMP_ROOT, expected), complete_qs=True)
+        request_mock.delete('{}/?{}'.format(MAILCHIMP_ROOT, expected_query_string), complete_qs=True)
         assert mailchimp_session.delete(query_parameters=expected)
 
 

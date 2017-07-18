@@ -1,11 +1,13 @@
+from logging import getLogger
 from marshmallow import Schema, fields
 
 from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
-from wingmonkey.enums import VISIBILITY_PRIVATE
+from wingmonkey.enums import VISIBILITY_PRIVATE, DEFAULT_RECORD_COUNT
 
 from wingmonkey.settings import DEFAULT_PERMISSION_REMINDER, CAMPAIGN_DEFAULTS, DEFAULT_CONTACT
 
+logger = getLogger(__name__)
 session = MailChimpSession()
 
 
@@ -44,27 +46,45 @@ class ListSerializer(Schema):
         # as we can not know the correct values of certain keys yet before creation on the API side( eg id ).
         # It also prevents unwanted overwriting.
         self.exclude = instance.empty_fields
+        self._update_fields()
 
         response = session.post('lists', json=self.dumps(instance).data)
+        self.exclude = ()
+        self._update_fields()
         if response:
             return List(**self.load(response.json()).data)
 
     def read(self, list_id=None):
         """
         get list from mailchimp server and update object instance attributes
+        :param list_id: id of List instance
         :return: updated MailChimpList instance
         """
-        self.exclude = None
-
-        # If this instance doesn't have an id yet we'll get the first list we find on the server
+        # If no id is given we'll get the first list we find on the server
         if list_id is None:
-            list_id = session.get('lists').json()['lists'][0]['id']
+            try:
+                list_id = session.get('lists').json()['lists'][0]['id']
+            except IndexError:
+                logger.warning('No lists found on server')
+                return
 
         response = session.get('lists/{}'.format(list_id))
         return List(**self.load(response.json()).data)
 
     def update(self, instance):
-        raise NotImplemented
+        """
+        :param instance: List instance
+        :return: updated MailChimpList instance
+        """
+        self.only = ('name', 'contact', 'permission_reminder', 'use_archive_bar', 'campaign_defaults',
+                     'notify_on_subscribe', 'email_type_option', 'visibility')
+        self._update_fields()
+
+        response = session.patch('lists/{}'.format(instance.id), json=self.dumps(instance).data)
+        self.only = ()
+        self._update_fields()
+        if response:
+            return List(**self.load(response.json()).data)
 
     def delete(self, instance):
         """
@@ -108,16 +128,19 @@ class List(MailChimpData):
         self._links = _links
 
 
-class ListsSerializer(Schema):
+class ListCollectionSerializer(Schema):
     lists = fields.List(cls_or_instance=fields.Nested(ListSerializer))
     total_items = fields.Int()
 
-    def read(self):
-        response = session.get('lists')
-        return Lists(**self.load(response.json()).data)
+    def read(self, count=DEFAULT_RECORD_COUNT, extra_parameters=None):
+        query_parameters = dict(count=count)
+        if extra_parameters:
+            query_parameters.update(extra_parameters)
+        response = session.get('lists', query_parameters=query_parameters)
+        return ListCollection(**self.load(response.json()).data)
 
 
-class Lists(MailChimpData):
+class ListCollection(MailChimpData):
     """
     class representing multiple mailchimp lists
     """
