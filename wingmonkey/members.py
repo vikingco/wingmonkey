@@ -31,6 +31,7 @@ class MemberSerializer(Schema):
     interests = fields.Dict()
     stats = fields.Dict()
     ip_signup = fields.Str()
+    timestamp_signup = fields.Str()
     ip_opt = fields.Str()
     timestamp_opt = fields.Str()
     member_rating = fields.Int()
@@ -103,11 +104,17 @@ class MemberSerializer(Schema):
 
 class Member(MailChimpData):
 
+    __slots__ = ('id', 'email_address', 'unique_email_id', 'email_type', 'status', 'unsubscribe_reason',
+                 'unsubscribe_campaign_id', 'unsubscribe_campaign_title', 'merge_fields', 'interests', 'stats',
+                 'ip_signup', 'timestamp_signup', 'ip_opt', 'timestamp_opt', 'member_rating', 'last_changed',
+                 'language', 'vip', 'email_client', 'location', 'last_note', 'list_id', '_links',
+                 )
+
     def __init__(self, id=None, email_address=None, unique_email_id=None, email_type=None,
                  status=MemberStatus.SUBSCRIBED, unsubscribe_reason=None, unsubscribe_campaign_id=None,
                  unsubscribe_campaign_title=None, merge_fields=None, interests=None, stats=None, ip_signup=None,
-                 ip_opt=None, timestamp_opt=None, member_rating=None, last_changed=None, language='en', vip=False,
-                 email_client=None, location=None, last_note=None, list_id=None, _links=None):
+                 timestamp_signup=None, ip_opt=None, timestamp_opt=None, member_rating=None, last_changed=None,
+                 language='en', vip=False, email_client=None, location=None, last_note=None, list_id=None, _links=None):
 
         self.id = id
         self.email_address = email_address
@@ -121,6 +128,7 @@ class Member(MailChimpData):
         self.interests = interests
         self.stats = stats
         self.ip_signup = ip_signup
+        self.timestamp_signup = timestamp_signup
         self.ip_opt = ip_opt
         self.timestamp_opt = timestamp_opt
         self.member_rating = member_rating

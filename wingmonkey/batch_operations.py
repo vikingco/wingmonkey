@@ -55,6 +55,8 @@ class BatchOperationSerializer(Schema):
 
 class BatchOperation(MailChimpData):
 
+    __slots__ = ('method', 'path', 'operation_id', 'params', 'body')
+
     def __init__(self, method=None, path=None, operation_id=None, params=None, body=None):
 
         self.method = method
@@ -78,7 +80,6 @@ class BatchOperationCollection(MailChimpData):
 
 def _batch_members_operation(list_id, members_list, method):
     method = method
-    path = 'lists/{}/members'.format(list_id)
     member_serializer = MemberSerializer()
     batch_operation_resource_serializer = BatchOperationResourceSerializer()
     batch_operations_serializer = BatchOperationCollectionSerializer()
@@ -91,6 +92,8 @@ def _batch_members_operation(list_id, members_list, method):
         member_serializer._update_fields()
 
     for member in members_list:
+
+        path = 'lists/{}/members'.format(list_id)
 
         if method == HttpMethods.POST:
             member_serializer.exclude = member.empty_fields
