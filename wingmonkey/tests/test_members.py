@@ -99,18 +99,17 @@ def compare_result(member, expected=None):
 def test_member_read(expected_member):
     member = Member(**expected_member)
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/members/{}'.format(MAILCHIMP_ROOT, expected_member['list_id'], 
-                                                         expected_member['id']), text=dumps(expected_member))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_member["list_id"]}/members/{expected_member["id"]}',
+                         text=dumps(expected_member))
         assert compare_result(member_serializer.read(member.list_id, member.id), expected_member)
 
 
 def test_member_read_no_id(expected_member, expected_members):
     member = Member(**expected_member)
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/members'.format(MAILCHIMP_ROOT, expected_members['list_id']),
-                         text=dumps(expected_members))
-        request_mock.get('{}/lists/{}/members/{}'.format(MAILCHIMP_ROOT, expected_member['list_id'],
-                                                         expected_member['id']), text=dumps(expected_member))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members', text=dumps(expected_members))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_member["list_id"]}/members/{expected_member["id"]}',
+                         text=dumps(expected_member))
         assert compare_result(member_serializer.read(member.list_id), expected_member)
 
 
@@ -118,8 +117,7 @@ def test_member_read_no_id_empty_list(caplog, expected_members):
     expected_members.update(members=[])
     caplog.set_level(WARNING)
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/members'.format(MAILCHIMP_ROOT, expected_members['list_id']),
-                         text=dumps(expected_members))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members', text=dumps(expected_members))
         member_serializer.read(expected_members['list_id'])
         assert 'No members found for list' in caplog.text
 
@@ -127,30 +125,28 @@ def test_member_read_no_id_empty_list(caplog, expected_members):
 def test_member_create(expected_member):
     member = Member(**expected_member)
     with Mocker() as request_mock:
-        request_mock.post('{}/lists/{}/members'.format(MAILCHIMP_ROOT, expected_member['list_id']),
-                          text=dumps(expected_member))
+        request_mock.post(f'{MAILCHIMP_ROOT}/lists/{expected_member["list_id"]}/members', text=dumps(expected_member))
         assert compare_result(member_serializer.create(member.list_id, member), expected_member)
 
 
 def test_member_update(expected_member):
     member = Member(**expected_member)
     with Mocker() as request_mock:
-        request_mock.patch('{}/lists/{}/members/{}'.format(MAILCHIMP_ROOT, expected_member['list_id'],
-                                                           expected_member['id']), text=dumps(expected_member))
+        request_mock.patch(f'{MAILCHIMP_ROOT}/lists/{expected_member["list_id"]}/members/{expected_member["id"]}',
+                           text=dumps(expected_member))
         assert compare_result(member_serializer.update(member.list_id, member), expected_member)
 
 
 def test_member_delete(expected_member):
     member = Member(**expected_member)
     with Mocker() as request_mock:
-        request_mock.delete('{}/lists/{}/members/{}'.format(MAILCHIMP_ROOT, expected_member['list_id'],
-                                                   expected_member['id']), text='')
+        request_mock.delete(f'{MAILCHIMP_ROOT}/lists/{expected_member["list_id"]}/members/{expected_member["id"]}',
+                            text='')
         assert member_serializer.delete(member.list_id, member.id)
 
 
 def test_members_read(expected_members):
     members = MemberCollection(**expected_members)
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/members'.format(MAILCHIMP_ROOT, expected_members['list_id']),
-                         text=dumps(expected_members))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members', text=dumps(expected_members))
         assert members_serializer.read(members.list_id).members[0]['id'] == expected_members['members'][0]['id']

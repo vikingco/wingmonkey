@@ -15,13 +15,13 @@ else:
 
 MAILCHIMP_API_KEY = environ.get('MAILCHIMP_API_KEY')
 DATACENTER = MAILCHIMP_API_KEY.split('-')[1]
-MAILCHIMP_ROOT = environ.get('MAILCHIMP_ROOT_URL', default='https://{}.api.mailchimp.com/3.0'.format(DATACENTER))
+MAILCHIMP_ROOT = environ.get('MAILCHIMP_ROOT_URL', default=f'https://{DATACENTER}.api.mailchimp.com/3.0')
 MAILCHIMP_EXPORT_ROOT = environ.get('MAILCHIMP_EXPORT_ROOT',
-                                    default='https://{}.api.mailchimp.com/export/1.0'.format(DATACENTER))
+                                    default=f'https://{DATACENTER}.api.mailchimp.com/export/1.0')
 
 BRAND = environ.get('BRAND', default='Oz, wizard & co')
 
-DEFAULT_PERMISSION_REMINDER = str('You get this mail because you are a member of {}'.format(BRAND))
+DEFAULT_PERMISSION_REMINDER = str(f'You get this mail because you are a member of {BRAND}')
 CAMPAIGN_DEFAULTS = environ.get('CAMPAIGN_DEFAULTS', default={
     "from_name": "",
     "from_email": "",

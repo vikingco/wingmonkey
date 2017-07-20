@@ -68,7 +68,7 @@ class ListSerializer(Schema):
                 logger.warning('No lists found on server')
                 return
 
-        response = session.get('lists/{}'.format(list_id))
+        response = session.get(f'lists/{list_id}')
         return List(**self.load(response.json()).data)
 
     def update(self, instance):
@@ -80,7 +80,7 @@ class ListSerializer(Schema):
                      'notify_on_subscribe', 'email_type_option', 'visibility')
         self._update_fields()
 
-        response = session.patch('lists/{}'.format(instance.id), json=self.dumps(instance).data)
+        response = session.patch(f'lists/{instance.id}', json=self.dumps(instance).data)
         self.only = ()
         self._update_fields()
         if response:
@@ -91,7 +91,7 @@ class ListSerializer(Schema):
         delete list from mailchimp server
         :return: Bool
         """
-        if session.delete('lists/{}'.format(instance.id)):
+        if session.delete(f'lists/{instance.id}'):
             return True
 
 

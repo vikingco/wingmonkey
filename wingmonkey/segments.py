@@ -28,7 +28,7 @@ class SegmentSerializer(Schema):
         self.exclude = segment_instance.empty_fields
         self._update_fields()
 
-        response = session.post('lists/{}/segments'.format(list_id), json=self.dumps(segment_instance).data)
+        response = session.post(f'lists/{list_id}/segments', json=self.dumps(segment_instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -41,7 +41,7 @@ class SegmentSerializer(Schema):
         :return: Segment instance
         """
 
-        response = session.get('lists/{}/segments/{}'.format(list_id, segment_id))
+        response = session.get(f'lists/{list_id}/segments/{segment_id}')
         return Segment(**self.load(response.json()).data)
 
     def update(self, list_id, segment_instance):
@@ -53,7 +53,7 @@ class SegmentSerializer(Schema):
         self.only = ('name', 'options')
         self._update_fields()
 
-        response = session.patch('lists/{}/segments/{}'.format(list_id, segment_instance.id),
+        response = session.patch(f'lists/{list_id}/segments/{segment_instance.id}',
                                  json=self.dumps(segment_instance).data)
         self.only = ()
         self._update_fields()
@@ -66,7 +66,7 @@ class SegmentSerializer(Schema):
         :param merge_id: id of segment to delete
         :return: boolean
         """
-        if session.delete('lists/{}/segments/{}'.format(list_id, segment_id)):
+        if session.delete(f'lists/{list_id}/segments/{segment_id}'):
             return True
 
 
@@ -99,7 +99,7 @@ class SegmentCollectionSerializer(Schema):
         :return: SegmentsCollection
         """
 
-        response = session.get('lists/{}/segments'.format(list_id))
+        response = session.get(f'lists/{list_id}/segments')
         return SegmentCollection(**self.load(response.json()).data)
 
 

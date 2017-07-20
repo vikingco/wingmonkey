@@ -58,26 +58,42 @@ def expected_member():
 
 
 def test_batch_add_members(expected_batch_operation_resource, expected_member):
+
+    def match_request_text(request):
+        return 'lists/alistid1234/members' in (request.text or '')
+
     members = [Member(**expected_member)]
     with Mocker() as request_mock:
-        request_mock.post('{}/batches'.format(MAILCHIMP_ROOT),
-                          text=dumps(expected_batch_operation_resource))
+        request_mock.post(f'{MAILCHIMP_ROOT}/batches',
+                          text=dumps(expected_batch_operation_resource), additional_matcher=match_request_text)
         result = batch_add_members('alistid1234', members)
         assert result.id == expected_batch_operation_resource['id']
 
 
 def test_batch_update_members(expected_batch_operation_resource, expected_member):
-    members = [Member(**expected_member)]
+
+    expected_member2 = expected_member
+    expected_member2['id'] = 'KRBL202'
+
+    def match_request_text(request):
+        return f'lists/alistid1234/members/{expected_member["id"]}' and \
+               f'lists/alistid1234/members/{expected_member2["id"]}' in (request.text or '')
+
+    members = [Member(**expected_member), Member(**expected_member2)]
     with Mocker() as request_mock:
-        request_mock.post('{}/batches'.format(MAILCHIMP_ROOT),
-                          text=dumps(expected_batch_operation_resource))
+        request_mock.post(f'{MAILCHIMP_ROOT}/batches',
+                          text=dumps(expected_batch_operation_resource), additional_matcher=match_request_text)
         result = batch_update_members('alistid1234', members)
         assert result.id == expected_batch_operation_resource['id']
 
 
 def test_batch_delete_members(expected_batch_operation_resource, expected_member):
+
+    def match_request_text(request):
+        return 'lists/alistid1234/members' in (request.text or '')
+
     members = [Member(**expected_member)]
     with Mocker() as request_mock:
-        request_mock.post('{}/batches'.format(MAILCHIMP_ROOT),
-                          text=dumps(expected_batch_operation_resource))
+        request_mock.post(f'{MAILCHIMP_ROOT}/batches',
+                          text=dumps(expected_batch_operation_resource), additional_matcher=match_request_text)
         assert batch_delete_members('alistid1234', members)

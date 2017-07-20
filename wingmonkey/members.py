@@ -53,7 +53,7 @@ class MemberSerializer(Schema):
         self.exclude = instance.empty_fields
         self._update_fields()
 
-        response = session.post('lists/{}/members'.format(list_id), json=self.dumps(instance).data)
+        response = session.post(f'lists/{list_id}/members', json=self.dumps(instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -69,13 +69,13 @@ class MemberSerializer(Schema):
         # If no id is given we'll get the first member of the first list we find on the server
         if member_id is None:
             try:
-                member_id = session.get('lists/{}/members'.format(list_id),
+                member_id = session.get(f'lists/{list_id}/members',
                                         query_parameters=query).json()['members'][0]['id']
             except IndexError:
                 logger.warning('No members found for list %s', list_id)
                 return
 
-        response = session.get('lists/{}/members/{}'.format(list_id, member_id), query_parameters=query)
+        response = session.get(f'lists/{list_id}/members/{member_id}', query_parameters=query)
         return Member(**self.load(response.json()).data)
 
     def update(self, list_id, instance, query=None):
@@ -90,7 +90,7 @@ class MemberSerializer(Schema):
                      'location')
         self._update_fields()
 
-        response = session.patch('lists/{}/members/{}'.format(list_id, instance.id), json=self.dumps(instance).data,
+        response = session.patch(f'lists/{list_id}/members/{instance.id}', json=self.dumps(instance).data,
                                  query_parameters=query)
         self.only = ()
         self._update_fields()
@@ -98,7 +98,7 @@ class MemberSerializer(Schema):
             return Member(**self.load(response.json()).data)
 
     def delete(self, list_id, member_id):
-        if session.delete('lists/{}/members/{}'.format(list_id, member_id)):
+        if session.delete(f'lists/{list_id}/members/{member_id}'):
             return True
 
 
@@ -155,7 +155,7 @@ class MemberCollectionSerializer(Schema):
         :param query: dict: query parameters
         :return: Members instance
         """
-        response = session.get('lists/{}/members'.format(list_id), query_parameters=query)
+        response = session.get(f'lists/{list_id}/members', query_parameters=query)
         return MemberCollection(**self.load(response.json()).data)
 
 
@@ -176,7 +176,7 @@ async def _get_members_task(list_id, count, offset, extra_params=None, retry=3):
 
     while retry > 0:
         try:
-            response = await session.async_get('lists/{}/members'.format(list_id),
+            response = await session.async_get(f'lists/{list_id}/membersƒ',
                                                query_parameters=query_parameters)
             return response
         except ClientException as e:

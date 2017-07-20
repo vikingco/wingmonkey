@@ -49,7 +49,7 @@ class MailChimpSession(object):
 
         try:
             logger.warning('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
-            response = method('{}/{}'.format(self.api_endpoint, url), headers={'Accept': 'application/json'},
+            response = method(f'{self.api_endpoint}/{url}', headers={'Accept': 'application/json'},
                               data=json, params=query_parameters, auth=auth, stream=stream)
             response.raise_for_status()
             return response
@@ -97,7 +97,7 @@ class MailChimpSession(object):
 
         try:
             logger.warning('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
-            response = await method('{}/{}'.format(self.api_endpoint, url), headers={'Accept': 'application/json'},
+            response = await method(f'{self.api_endpoint}/{url}', headers={'Accept': 'application/json'},
                                     data=json, params=query_parameters, auth=auth)
 
             response.raise_for_status()
@@ -137,4 +137,4 @@ class ClientException(Exception):
         logger.error(response_body)
 
     def __repr__(self):
-        return '{}: {}'.format(self.http_code, self.response_body)
+        return f'{self.http_code}: {self.response_body}'

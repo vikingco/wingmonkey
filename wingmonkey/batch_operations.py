@@ -21,11 +21,11 @@ class BatchOperationResourceSerializer(Schema):
     response_body_url = fields.Str()
 
     def read(self, batch_id):
-        response = session.get('batches/{}'.format(batch_id))
+        response = session.get(f'batches/{batch_id}')
         return BatchOperationResource(**BatchOperationResourceSerializer().load(response.json()).data)
 
     def delete(self, batch_id):
-        if session.delete('batches/{}'.format(batch_id)):
+        if session.delete(f'batches/{batch_id}'):
             return True
 
 
@@ -93,7 +93,7 @@ def _batch_members_operation(list_id, members_list, method):
 
     for member in members_list:
 
-        path = 'lists/{}/members'.format(list_id)
+        path = f'lists/{list_id}/members'
 
         if method == HttpMethods.POST:
             member_serializer.exclude = member.empty_fields
@@ -101,7 +101,7 @@ def _batch_members_operation(list_id, members_list, method):
 
         elif method == HttpMethods.PATCH:
             # update requests need an existing member id in the url
-            path += '/{}'.format(member.id)
+            path = f'lists/{list_id}/members/{member.id}'
 
         operations.append(BatchOperation(method=method, path=path, body=member_serializer.dumps(member).data))
 

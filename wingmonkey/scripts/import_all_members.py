@@ -40,7 +40,7 @@ def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, re
 
     if print_time:
         finish = datetime.now()
-        print('started: {}  , finished: {}'.format(start, finish))
+        print(f'started: {start}  , finished: {finish}')
 
     return all_members
 
