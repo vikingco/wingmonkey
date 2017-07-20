@@ -30,7 +30,7 @@ def test_mailchimp_account_info():
     }
 
     with Mocker() as request_mock:
-        request_mock.get('{}/'.format(MAILCHIMP_ROOT), text=dumps(expected))
+        request_mock.get(f'{MAILCHIMP_ROOT}/', text=dumps(expected))
         account_info = account_info_serializer.read()
         for key in account_info.__dict__.keys():
             if key == 'schema':

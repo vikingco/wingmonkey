@@ -67,13 +67,12 @@ def test_get_all_members(expected_members, expected_merge_field_collection):
     segment = 1
     since = datetime(2017, 7, 17)
     hashed = None
-    query_string = 'apikey={}&id={}&status={}&segment={}&since={}'.format(MAILCHIMP_API_KEY, list_id, status, segment,
-                                                                          (datetime.strftime(
-                                                                                          since, '%Y-%m-%d %H:%M:%S')))
+    query_string = (f'apikey={MAILCHIMP_API_KEY}&id={list_id}&status={status}&segment={segment}&since='
+                    f'{datetime.strftime(since, "%Y-%m-%d %H:%M:%S")}')
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/merge-fields'.format(MAILCHIMP_ROOT, expected_merge_field_collection['list_id']),
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_merge_field_collection["list_id"]}/merge-fields',
                          text=dumps(expected_merge_field_collection))
-        request_mock.get('{}/list/?{}'.format(MAILCHIMP_EXPORT_ROOT, query_string),
+        request_mock.get(f'{MAILCHIMP_EXPORT_ROOT}/list/?{query_string}',
                          content=expected_members, complete_qs=True)
         members = get_all_members(list_id, status, segment, since, hashed)
         assert members[0].email_address == 'djones@hotmail.com'
@@ -86,16 +85,14 @@ def test_get_all_members_hashed(expected_merge_field_collection):
     segment = 1
     since = datetime(2017, 7, 17)
     hashed = 'sha256'
-    query_string = 'apikey={}&id={}&status={}&segment={}&since={}&hashed={}'.format(MAILCHIMP_API_KEY, list_id, status,
-                                                                                    segment, (datetime.strftime(
-                                                                                              since, '%Y-%m-%d %H:%M:%S'
-                                                                                              )), hashed)
+    query_string = f'apikey={MAILCHIMP_API_KEY}&id={list_id}&status={status}&segment={segment}&since=' \
+                   f'{datetime.strftime(since, "%Y-%m-%d %H:%M:%S")}&hashed={hashed}'
     hashed_members = b'["EMAIL_HASH"]\n["958b4050e18d1d59a58346d67d8831409a770b0bd5ac227ed04d43b2815810e9"]\n' \
                      b'["8ff789bf35df8767fb064a940c4d5aa6115d1d013ea090b5d9fc0b402f23ac9d"]'
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/merge-fields'.format(MAILCHIMP_ROOT, expected_merge_field_collection['list_id']),
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_merge_field_collection["list_id"]}/merge-fields',
                          text=dumps(expected_merge_field_collection))
-        request_mock.get('{}/list/?{}'.format(MAILCHIMP_EXPORT_ROOT, query_string),
+        request_mock.get(f'{MAILCHIMP_EXPORT_ROOT}/list/?{query_string}',
                          content=hashed_members, complete_qs=True)
         members = get_all_members(list_id, status, segment, since, hashed)
         assert members[0] == '958b4050e18d1d59a58346d67d8831409a770b0bd5ac227ed04d43b2815810e9'

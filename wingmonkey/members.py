@@ -31,6 +31,7 @@ class MemberSerializer(Schema):
     interests = fields.Dict()
     stats = fields.Dict()
     ip_signup = fields.Str()
+    timestamp_signup = fields.Str()
     ip_opt = fields.Str()
     timestamp_opt = fields.Str()
     member_rating = fields.Int()
@@ -52,7 +53,7 @@ class MemberSerializer(Schema):
         self.exclude = instance.empty_fields
         self._update_fields()
 
-        response = session.post('lists/{}/members'.format(list_id), json=self.dumps(instance).data)
+        response = session.post(f'lists/{list_id}/members', json=self.dumps(instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -68,13 +69,13 @@ class MemberSerializer(Schema):
         # If no id is given we'll get the first member of the first list we find on the server
         if member_id is None:
             try:
-                member_id = session.get('lists/{}/members'.format(list_id),
+                member_id = session.get(f'lists/{list_id}/members',
                                         query_parameters=query).json()['members'][0]['id']
             except IndexError:
                 logger.warning('No members found for list %s', list_id)
                 return
 
-        response = session.get('lists/{}/members/{}'.format(list_id, member_id), query_parameters=query)
+        response = session.get(f'lists/{list_id}/members/{member_id}', query_parameters=query)
         return Member(**self.load(response.json()).data)
 
     def update(self, list_id, instance, query=None):
@@ -89,7 +90,7 @@ class MemberSerializer(Schema):
                      'location')
         self._update_fields()
 
-        response = session.patch('lists/{}/members/{}'.format(list_id, instance.id), json=self.dumps(instance).data,
+        response = session.patch(f'lists/{list_id}/members/{instance.id}', json=self.dumps(instance).data,
                                  query_parameters=query)
         self.only = ()
         self._update_fields()
@@ -97,17 +98,23 @@ class MemberSerializer(Schema):
             return Member(**self.load(response.json()).data)
 
     def delete(self, list_id, member_id):
-        if session.delete('lists/{}/members/{}'.format(list_id, member_id)):
+        if session.delete(f'lists/{list_id}/members/{member_id}'):
             return True
 
 
 class Member(MailChimpData):
 
+    __slots__ = ('id', 'email_address', 'unique_email_id', 'email_type', 'status', 'unsubscribe_reason',
+                 'unsubscribe_campaign_id', 'unsubscribe_campaign_title', 'merge_fields', 'interests', 'stats',
+                 'ip_signup', 'timestamp_signup', 'ip_opt', 'timestamp_opt', 'member_rating', 'last_changed',
+                 'language', 'vip', 'email_client', 'location', 'last_note', 'list_id', '_links',
+                 )
+
     def __init__(self, id=None, email_address=None, unique_email_id=None, email_type=None,
                  status=MemberStatus.SUBSCRIBED, unsubscribe_reason=None, unsubscribe_campaign_id=None,
                  unsubscribe_campaign_title=None, merge_fields=None, interests=None, stats=None, ip_signup=None,
-                 ip_opt=None, timestamp_opt=None, member_rating=None, last_changed=None, language='en', vip=False,
-                 email_client=None, location=None, last_note=None, list_id=None, _links=None):
+                 timestamp_signup=None, ip_opt=None, timestamp_opt=None, member_rating=None, last_changed=None,
+                 language='en', vip=False, email_client=None, location=None, last_note=None, list_id=None, _links=None):
 
         self.id = id
         self.email_address = email_address
@@ -121,6 +128,7 @@ class Member(MailChimpData):
         self.interests = interests
         self.stats = stats
         self.ip_signup = ip_signup
+        self.timestamp_signup = timestamp_signup
         self.ip_opt = ip_opt
         self.timestamp_opt = timestamp_opt
         self.member_rating = member_rating
@@ -147,7 +155,7 @@ class MemberCollectionSerializer(Schema):
         :param query: dict: query parameters
         :return: Members instance
         """
-        response = session.get('lists/{}/members'.format(list_id), query_parameters=query)
+        response = session.get(f'lists/{list_id}/members', query_parameters=query)
         return MemberCollection(**self.load(response.json()).data)
 
 
@@ -168,7 +176,7 @@ async def _get_members_task(list_id, count, offset, extra_params=None, retry=3):
 
     while retry > 0:
         try:
-            response = await session.async_get('lists/{}/members'.format(list_id),
+            response = await session.async_get(f'lists/{list_id}/membersƒ',
                                                query_parameters=query_parameters)
             return response
         except ClientException as e:

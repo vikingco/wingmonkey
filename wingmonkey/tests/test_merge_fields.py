@@ -68,7 +68,7 @@ def compare_result(merge_field, expected=None):
 def test_merge_field_create(expected_merge_field):
     merge_field = MergeField(**expected_merge_field)
     with Mocker() as request_mock:
-        request_mock.post('{}/lists/{}/merge-fields'.format(MAILCHIMP_ROOT, expected_merge_field['list_id']),
+        request_mock.post(f'{MAILCHIMP_ROOT}/lists/{expected_merge_field["list_id"]}/merge-fields',
                           text=dumps(expected_merge_field))
         assert compare_result(merge_field_serializer.create(merge_field.list_id, merge_field), expected_merge_field)
 
@@ -76,9 +76,9 @@ def test_merge_field_create(expected_merge_field):
 def test_merge_field_read(expected_merge_field):
     merge_field = MergeField(**expected_merge_field)
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/merge-fields/{}'.format(MAILCHIMP_ROOT, expected_merge_field['list_id'],
-                                                              expected_merge_field['merge_id']),
-                         text=dumps(expected_merge_field))
+        request_mock.get(
+            f'{MAILCHIMP_ROOT}/lists/{expected_merge_field["list_id"]}/merge-fields/{expected_merge_field["merge_id"]}',
+            text=dumps(expected_merge_field))
         assert compare_result(merge_field_serializer.read(merge_field.list_id, merge_field.merge_id),
                               expected_merge_field)
 
@@ -86,9 +86,9 @@ def test_merge_field_read(expected_merge_field):
 def test_merge_field_update(expected_merge_field):
     merge_field = MergeField(**expected_merge_field)
     with Mocker() as request_mock:
-        request_mock.patch('{}/lists/{}/merge-fields/{}'.format(MAILCHIMP_ROOT, expected_merge_field['list_id'],
-                                                                expected_merge_field['merge_id']),
-                           text=dumps(expected_merge_field))
+        request_mock.patch(
+            f'{MAILCHIMP_ROOT}/lists/{expected_merge_field["list_id"]}/merge-fields/{expected_merge_field["merge_id"]}',
+            text=dumps(expected_merge_field))
         assert compare_result(merge_field_serializer.update(merge_field.list_id, merge_field),
                               expected_merge_field)
 
@@ -96,16 +96,16 @@ def test_merge_field_update(expected_merge_field):
 def test_merge_field_delete(expected_merge_field):
     merge_field = MergeField(**expected_merge_field)
     with Mocker() as request_mock:
-        request_mock.delete('{}/lists/{}/merge-fields/{}'.format(MAILCHIMP_ROOT, expected_merge_field['list_id'],
-                                                                expected_merge_field['merge_id']),
-                           text=dumps(expected_merge_field))
+        request_mock.delete(
+            f'{MAILCHIMP_ROOT}/lists/{expected_merge_field["list_id"]}/merge-fields/{expected_merge_field["merge_id"]}',
+            text=dumps(expected_merge_field))
         assert merge_field_serializer.delete(merge_field.list_id, merge_field.merge_id)
 
 
 def test_merge_field_collection_read(expected_merge_field_collection):
 
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}/merge-fields'.format(MAILCHIMP_ROOT, expected_merge_field_collection['list_id']),
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_merge_field_collection["list_id"]}/merge-fields',
                          text=dumps(expected_merge_field_collection))
         merge_field_collection = merge_field_collection_serializer.read(expected_merge_field_collection['list_id'])
         expected_merge_fields = MergeFieldCollection(**expected_merge_field_collection)

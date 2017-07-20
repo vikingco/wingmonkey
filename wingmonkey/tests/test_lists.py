@@ -122,14 +122,14 @@ def compare_result(mailchimp_list, expected=None):
 def test_list_create(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.post('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(expected_list))
+        request_mock.post(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_list))
         assert compare_result(list_serializer.create(mailchimp_list), expected_list)
 
 
 def test_list_read(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.get('{}/lists/{}'.format(MAILCHIMP_ROOT, expected_list['id']), text=dumps(expected_list))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
         assert compare_result(list_serializer.read(mailchimp_list.id), expected_list)
 
 
@@ -137,8 +137,8 @@ def test_list_read_no_id(expected_list, expected_lists):
     mailchimp_list = List(**expected_list)
     mailchimp_list.id = None
     with Mocker() as request_mock:
-        request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(expected_lists))
-        request_mock.get('{}/lists/{}'.format(MAILCHIMP_ROOT, expected_list['id']), text=dumps(expected_list))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
         assert compare_result(list_serializer.read(), expected_list)
 
 
@@ -146,7 +146,7 @@ def test_list_read_no_id_no_lists(caplog):
     empty_list_collection = dict(lists=[])
     caplog.set_level(WARNING)
     with Mocker() as request_mock:
-        request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(empty_list_collection))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(empty_list_collection))
         list_serializer.read()
         assert 'No lists found on server' in caplog.text
 
@@ -154,21 +154,21 @@ def test_list_read_no_id_no_lists(caplog):
 def test_list_update(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.patch('{}/lists/{}'.format(MAILCHIMP_ROOT, expected_list['id']), text=dumps(expected_list))
+        request_mock.patch(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
         assert compare_result(list_serializer.update(mailchimp_list), expected_list)
 
 
 def test_list_delete(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.delete('{}/lists/{}'.format(MAILCHIMP_ROOT, expected_list['id']), text='')
+        request_mock.delete(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text='')
         assert list_serializer.delete(mailchimp_list)
 
 
 def test_lists_read(expected_lists):
 
     with Mocker() as request_mock:
-        request_mock.get('{}/lists'.format(MAILCHIMP_ROOT), text=dumps(expected_lists))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
         mailchimp_lists = list_collection_serializer.read()
         expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists

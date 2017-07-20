@@ -31,7 +31,7 @@ class MergeFieldSerializer(Schema):
         self.exclude = merge_field_instance.empty_fields
         self._update_fields()
 
-        response = session.post('lists/{}/merge-fields'.format(list_id), json=self.dumps(merge_field_instance).data)
+        response = session.post(f'lists/{list_id}/merge-fields', json=self.dumps(merge_field_instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -43,7 +43,7 @@ class MergeFieldSerializer(Schema):
         :param merge_id: id of merge field 
         :return: MergeField instance found on server
         """
-        response = session.get('lists/{}/merge-fields/{}'.format(list_id, merge_id))
+        response = session.get(f'lists/{list_id}/merge-fields/{merge_id}')
         return MergeField(**self.load(response.json()).data)
 
     def update(self, list_id, merge_field_instance):
@@ -55,7 +55,7 @@ class MergeFieldSerializer(Schema):
         self.only = ('tag', 'name', 'required', 'default_value', 'public', 'display_order', 'options', 'help_text')
         self._update_fields()
 
-        response = session.patch('lists/{}/merge-fields/{}'.format(list_id, merge_field_instance.merge_id),
+        response = session.patch(f'lists/{list_id}/merge-fields/{merge_field_instance.merge_id}',
                                  json=self.dumps(merge_field_instance).data)
         self.only = ()
         self._update_fields()
@@ -68,7 +68,7 @@ class MergeFieldSerializer(Schema):
         :param merge_id: id of merge field to delete
         :return: boolean
         """
-        if session.delete('lists/{}/merge-fields/{}'.format(list_id, merge_id)):
+        if session.delete(f'lists/{list_id}/merge-fields/{merge_id}'):
             return True
 
 
@@ -107,7 +107,7 @@ class MergeFieldCollectionSerializer(Schema):
         :return: MergeFieldsCollection
         """
 
-        response = session.get('lists/{}/merge-fields'.format(list_id))
+        response = session.get(f'lists/{list_id}/merge-fields')
         return MergeFieldCollection(**self.load(response.json()).data)
 
 

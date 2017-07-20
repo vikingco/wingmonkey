@@ -21,11 +21,11 @@ class BatchOperationResourceSerializer(Schema):
     response_body_url = fields.Str()
 
     def read(self, batch_id):
-        response = session.get('batches/{}'.format(batch_id))
+        response = session.get(f'batches/{batch_id}')
         return BatchOperationResource(**BatchOperationResourceSerializer().load(response.json()).data)
 
     def delete(self, batch_id):
-        if session.delete('batches/{}'.format(batch_id)):
+        if session.delete(f'batches/{batch_id}'):
             return True
 
 
@@ -55,6 +55,8 @@ class BatchOperationSerializer(Schema):
 
 class BatchOperation(MailChimpData):
 
+    __slots__ = ('method', 'path', 'operation_id', 'params', 'body')
+
     def __init__(self, method=None, path=None, operation_id=None, params=None, body=None):
 
         self.method = method
@@ -78,7 +80,6 @@ class BatchOperationCollection(MailChimpData):
 
 def _batch_members_operation(list_id, members_list, method):
     method = method
-    path = 'lists/{}/members'.format(list_id)
     member_serializer = MemberSerializer()
     batch_operation_resource_serializer = BatchOperationResourceSerializer()
     batch_operations_serializer = BatchOperationCollectionSerializer()
@@ -92,13 +93,15 @@ def _batch_members_operation(list_id, members_list, method):
 
     for member in members_list:
 
+        path = f'lists/{list_id}/members'
+
         if method == HttpMethods.POST:
             member_serializer.exclude = member.empty_fields
             member_serializer._update_fields()
 
         elif method == HttpMethods.PATCH:
             # update requests need an existing member id in the url
-            path += '/{}'.format(member.id)
+            path = f'lists/{list_id}/members/{member.id}'
 
         operations.append(BatchOperation(method=method, path=path, body=member_serializer.dumps(member).data))
 
