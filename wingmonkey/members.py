@@ -176,7 +176,7 @@ async def _get_members_task(list_id, count, offset, extra_params=None, retry=3):
 
     while retry > 0:
         try:
-            response = await session.async_get(f'lists/{list_id}/membersƒ',
+            response = await session.async_get(f'lists/{list_id}/members',
                                                query_parameters=query_parameters)
             return response
         except ClientException as e:
