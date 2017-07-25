@@ -253,7 +253,7 @@ async def _get_all_members_async(queue, list_id, count, max_chunks, total_member
     for i in range(0, ceil(total_member_count / count)+1):
         queue.put_nowait([list_id, count, i * count, extra_params, retry])
 
-    for chunk in range(1, max_chunks):
+    for chunk in range(0, max_chunks):
         tasks.append(_get_chunk(queue, responses))
 
     await gather(*tasks)
@@ -275,10 +275,17 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
                 return
             loop = get_event_loop()
             queue = Queue()
-            return loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
-                                                                  max_chunks=max_chunks,
-                                                                  total_member_count=total_member_count,
-                                                                  extra_params=extra_params, retry=retry))
+            responses = loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
+                                                                       max_chunks=max_chunks,
+                                                                       total_member_count=total_member_count,
+                                                                       extra_params=extra_params, retry=retry))
+            all_members = {}
+            for response in responses:
+                if not all_members.get('members'):
+                    all_members.update(response)
+                else:
+                    all_members['members'].extend(response['members'])
+            return MemberCollection(**all_members)
 
 
 def _calculate_count(total_member_count, max_count, max_chunks):

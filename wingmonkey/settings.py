@@ -38,3 +38,5 @@ DEFAULT_CONTACT = env.dict('DEFAULT_CONTACT', default={
     "country": "",
     "phone": ""
 })
+
+MAILCHIMP_MAX_CONNECTIONS = env('MAILCHIMP_MAX_CONNECTIONS', default=10)

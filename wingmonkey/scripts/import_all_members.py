@@ -3,8 +3,10 @@ from datetime import datetime
 from wingmonkey.lists import ListCollectionSerializer
 from wingmonkey.members import get_all_members_async
 
+ADMIN_UNSUBSCRIBE = 'Unsubscribed by an admin'
 
-def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, retry=3):
+
+def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, retry=10):
     """
     imports all members from all lists using specified filters if None given defaults to all lists
     :param list_ids: list of list ids to get members for
@@ -37,10 +39,20 @@ def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, re
     for list_id in list_ids:
         all_members.append(get_all_members_async(list_id, max_count=1000, max_chunks=chunks, extra_params=params,
                                                  retry=retry))
-
     if print_time:
         finish = datetime.now()
         print(f'started: {start}  , finished: {finish}')
 
     return all_members
 
+
+def get_unsubscribed_mail_addresses_since(datetime_since=None, list_ids=None):
+
+    all_unsubscribes_since = import_all_members(list_ids=list_ids, params=dict(since_last_changed=datetime_since,
+                                                status='unsubscribed'), chunks=9, retry=10)
+    unique_mail_addresses = set()
+    for member_collection in all_unsubscribes_since:
+        unique_mail_addresses.update(member['email_address'] for member in member_collection.members
+                                     if ADMIN_UNSUBSCRIBE not in member['unsubscribe_reason'])
+
+    return unique_mail_addresses, all_unsubscribes_since
