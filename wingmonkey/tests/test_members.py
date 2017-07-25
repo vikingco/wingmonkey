@@ -1,9 +1,11 @@
 from requests_mock import Mocker
-from pytest import fixture
+from pytest import fixture, raises
 from json import dumps
 from logging import WARNING
 
-from wingmonkey.members import Member, MemberSerializer, MemberCollection, MemberCollectionSerializer
+from wingmonkey.mailchimp_session import ClientException
+from wingmonkey.members import (Member, MemberSerializer, MemberCollection, MemberCollectionSerializer,
+                                MemberBatchRequestSerializer, MemberBatchRequest)
 from wingmonkey.lists import ListSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import MemberStatus
@@ -150,3 +152,35 @@ def test_members_read(expected_members):
     with Mocker() as request_mock:
         request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members', text=dumps(expected_members))
         assert members_serializer.read(members.list_id).members[0]['id'] == expected_members['members'][0]['id']
+
+
+def test_member_batch_request(expected_member):
+    expected_member2 = expected_member
+    expected_member2['id'] = 'NR2'
+    expected_member2['email_address'] = 'another1@bitesthe.dust'
+    member_list = [Member(**expected_member), Member(**expected_member2)]
+    member_batch_request = MemberBatchRequest(members=member_list)
+    expected_batch_response = {
+        'new_members': [
+            expected_member,
+            expected_member2
+        ],
+        'updated_members': None,
+        'errors': None,
+        'total_created': 2,
+        'total_updated': 0,
+        'error_count': 0,
+        '_links': None
+    }
+    with Mocker() as request_mock:
+        request_mock.post(f'{MAILCHIMP_ROOT}/lists/{expected_member["list_id"]}', text=dumps(expected_batch_response))
+        response = MemberBatchRequestSerializer().create(list_id=expected_member['list_id'],
+                                                         member_batch_request_instance=member_batch_request)
+        assert response.new_members[0]['email_address'] == expected_batch_response['new_members'][0]['email_address']
+        assert response.new_members[1]['email_address'] == expected_batch_response['new_members'][1]['email_address']
+        assert response.total_created == expected_batch_response['total_created']
+
+
+def test_member_batch_request_memberlist_too_big():
+    oversized_list = [Member() for _ in range(0, 501)]
+    assert raises(ClientException, MemberBatchRequest, members=oversized_list)

@@ -13,22 +13,22 @@ if path.isfile(ENV_FILE):
 else:
     ENV_FILE = None
 
-MAILCHIMP_API_KEY = environ.get('MAILCHIMP_API_KEY')
+MAILCHIMP_API_KEY = env('MAILCHIMP_API_KEY')
 DATACENTER = MAILCHIMP_API_KEY.split('-')[1]
-MAILCHIMP_ROOT = environ.get('MAILCHIMP_ROOT_URL', default=f'https://{DATACENTER}.api.mailchimp.com/3.0')
-MAILCHIMP_EXPORT_ROOT = environ.get('MAILCHIMP_EXPORT_ROOT',
+MAILCHIMP_ROOT = env('MAILCHIMP_ROOT_URL', default=f'https://{DATACENTER}.api.mailchimp.com/3.0')
+MAILCHIMP_EXPORT_ROOT = env('MAILCHIMP_EXPORT_ROOT',
                                     default=f'https://{DATACENTER}.api.mailchimp.com/export/1.0')
 
-BRAND = environ.get('BRAND', default='Oz, wizard & co')
+BRAND = env('BRAND', default='Oz, wizard & co')
 
 DEFAULT_PERMISSION_REMINDER = str(f'You get this mail because you are a member of {BRAND}')
-CAMPAIGN_DEFAULTS = environ.get('CAMPAIGN_DEFAULTS', default={
+CAMPAIGN_DEFAULTS = env.dict('CAMPAIGN_DEFAULTS', default={
     "from_name": "",
     "from_email": "",
     "subject": "",
     "language": "en"
 })
-DEFAULT_CONTACT = environ.get('DEFAULT_CONTACT', default={
+DEFAULT_CONTACT = env.dict('DEFAULT_CONTACT', default={
     "company": "",
     "address1": "",
     "address2": "",

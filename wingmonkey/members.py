@@ -169,6 +169,60 @@ class MemberCollection(MailChimpData):
         self._links = _links
 
 
+class MemberBatchRequestSerializer(Schema):
+
+    members = fields.List(cls_or_instance=fields.Nested(MemberSerializer, only=('email_address', 'status',
+                                                                                'merge_fields', 'language')))
+    update_existing = fields.Boolean()
+
+    def create(self, list_id, member_batch_request_instance):
+
+        response = session.post(f'lists/{list_id}', json=self.dumps(member_batch_request_instance).data)
+        if response:
+            return MemberBatchResponse(**MemberBatchResponseSerializer().load(response.json()).data)
+
+
+class MemberBatchRequest(MailChimpData):
+
+    def __init__(self, members, update_existing=True):
+        """
+
+        :param members: List: list of Member instances
+        :param update_existing: Bool: update existing members in list
+        """
+
+        if len(members) > 500:
+            raise ClientException(0, 'max 500 members are supported in a batch request' )
+
+        self.members = members
+        self.update_existing = update_existing
+
+
+class MemberBatchResponseSerializer(Schema):
+
+    new_members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
+    updated_members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
+    errors = fields.List(cls_or_instance=fields.Dict())
+    total_created = fields.Int()
+    total_updated = fields.Int()
+    error_count = fields.Int()
+    _links = fields.List(cls_or_instance=fields.Dict())
+
+
+class MemberBatchResponse(MailChimpData):
+
+    def __init__(self, new_members=None, updated_members=None, errors=None, total_created=0, total_updated=0,
+                 error_count=0, _links=None):
+
+        self.new_members = new_members
+        self.updated_members = updated_members
+        self.errors = errors
+        self.total_created = total_created
+        self.total_updated = total_updated
+        self.error_count = error_count
+        self._links = _links
+
+
 async def _get_members_task(list_id, count, offset, extra_params=None, retry=3):
     query_parameters = dict(count=count, offset=offset)
     if extra_params:
