@@ -21,7 +21,7 @@ def unsubscribe_members(list_id, member_list=None):
                                             extra_params=dict(status='subscribed'))
     members_to_update = []
 
-    for member in member_list['members']:
+    for member in member_list.members:
         member['status'] = MemberStatus.UNSUBSCRIBED
         members_to_update.append(Member(**member))
 
