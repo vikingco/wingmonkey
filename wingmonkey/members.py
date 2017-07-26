@@ -1,6 +1,7 @@
 from asyncio import get_event_loop, gather, Queue, sleep as async_sleep
 from math import ceil
 from time import sleep
+from hashlib import md5
 
 from logging import getLogger
 from marshmallow import Schema, fields
@@ -295,3 +296,13 @@ def _calculate_count(total_member_count, max_count, max_chunks):
     else:
         count = ceil(total_member_count/max_chunks)
         return count if count > 0 else 1
+
+
+def generate_member_id(email_address):
+    # handle None values
+    if not email_address:
+        return
+
+    member_hash = md5()
+    member_hash.update(email_address.lower().encode())
+    return member_hash.hexdigest()
