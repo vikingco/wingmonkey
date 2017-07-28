@@ -1,5 +1,6 @@
 from logging import getLogger
 from asyncio import get_event_loop, TimeoutError
+from contextlib import contextmanager
 
 from requests import Session, exceptions
 from requests.auth import HTTPBasicAuth
@@ -32,6 +33,12 @@ class MailChimpSession(object):
     def __del__(self):
         self.session.close()
         self.async_session.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
 
     def _request(self, method, url=None, json=None, query_parameters=None, stream=False):
         """
