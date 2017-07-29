@@ -30,7 +30,12 @@ merge_fields = {FNAME: 'Ceasar', LNAME: 'Chimp'}
 language = 'en'
 list_id = 'A_VALID_LIST_ID'
 
-member_to_add = Member(email_address=email_address, merge_fields=merge_fields, language=language, list_id=list_id)
+member_to_add = Member(
+                       email_address=email_address, 
+                       merge_fields=merge_fields, 
+                       language=language, 
+                       list_id=list_id
+                       )
 
 member_serializer = MemberSerializer()
 
