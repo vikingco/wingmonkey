@@ -3,6 +3,7 @@ from marshmallow import Schema, fields
 from wingmonkey.enums import MergeFieldTypes
 from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
+from wingmonkey.lists import get_all_lists
 
 session = MailChimpSession()
 
@@ -102,13 +103,23 @@ class MergeFieldCollectionSerializer(Schema):
 
     def read(self, list_id):
         """
-        
         :param list_id: id of list the merge fields are defined for
         :return: MergeFieldsCollection
         """
+        count = self._get_total_items_count(list_id)
 
-        response = session.get(f'lists/{list_id}/merge-fields')
+        response = session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=count))
         return MergeFieldCollection(**self.load(response.json()).data)
+
+    def _get_total_items_count(self, list_id):
+        """
+        Get total amount of merge fields defined for given list
+        :param list_id: id of list to get total item count for
+        :return: int
+        """
+
+        response = session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=1, fields=['total_items']))
+        return MergeFieldCollection(**self.load(response.json()).data).total_items
 
 
 class MergeFieldCollection(MailChimpData):
@@ -119,3 +130,52 @@ class MergeFieldCollection(MailChimpData):
         self.list_id = list_id
         self.total_items = total_items
         self._links = _links
+
+
+def get_all_merge_fields(list_ids=None):
+    """
+    Get all merge fields for all lists
+    :param list_ids: list : optional list of list ids, default is getting all mergefield for all lists
+    :return: MergeFieldCollection
+    """
+    if not list_ids:
+        # get all lists
+        list_collection = get_all_lists()
+        list_ids = [l['id'] for l in list_collection.lists]
+    else:
+        list_ids = list_ids
+
+    merge_field_collection_serializer = MergeFieldCollectionSerializer()
+
+    all_merge_fields = MergeFieldCollection(merge_fields=[])
+
+    for list_id in list_ids:
+        merge_field_collection = merge_field_collection_serializer.read(list_id)
+        for field in merge_field_collection.merge_fields:
+            if not field['tag'] in [merge_field['tag'] for merge_field in all_merge_fields.merge_fields]:
+                all_merge_fields.merge_fields.append(field)
+    all_merge_fields.total_items = len(all_merge_fields.merge_fields)
+
+    return all_merge_fields
+
+
+def get_merge_field_mapping(merge_field_collection):
+    """
+    Return mapping dict of mergefield tags to names
+    :param merge_field_collection: MergeFieldCollection
+    :return: Dict
+    """
+    return {field['tag']: field['name'] for field in merge_field_collection.merge_fields}
+
+
+def match_tag_to_name(name, mapping):
+    """
+    Try to match given name to mergefield tag defined in mapping dict
+    Not case sensitive
+    :param name: str
+    :param mapping: dict
+    :return: str: Tag
+    """
+    for tag, fieldname in mapping.items():
+        if str(name).lower() == str(fieldname).lower():
+            return tag

@@ -149,3 +149,17 @@ class ListCollection(MailChimpData):
 
         self.lists = lists
         self.total_items = total_items
+
+
+def get_all_lists():
+    """
+    Get all lists existing om mailchimp account
+    :return: ListCollection
+    """
+    list_collection_serializer = ListCollectionSerializer()
+
+    # get list count
+    list_count = list_collection_serializer.read(count=1, extra_parameters=dict(fields=['total_items'])).total_items
+
+    # get all lists
+    return list_collection_serializer.read(count=list_count)

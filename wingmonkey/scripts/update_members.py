@@ -21,14 +21,14 @@ def unsubscribe_members(list_id, member_list=None):
                                             extra_params=dict(status='subscribed'))
     members_to_update = []
 
-    for member in member_list['members']:
+    for member in member_list.members:
         member['status'] = MemberStatus.UNSUBSCRIBED
         members_to_update.append(Member(**member))
 
-    return _member_batch_update(list_id=list_id, member_list=members_to_update)
+    return member_batch_update(list_id=list_id, member_list=members_to_update)
 
 
-def _member_batch_update(list_id, member_list):
+def member_batch_update(list_id, member_list):
     """
     Creates batch operations of batch member requests
     :param list_id: Str: id of list to create/update members in
@@ -63,3 +63,4 @@ def generate_chunks(input_list, chunk_size):
     """Generator that returns chunk_size slices of given list"""
     for i in range(0, len(input_list), chunk_size):
         yield input_list[i:i + chunk_size]
+

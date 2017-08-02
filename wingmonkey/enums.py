@@ -2,6 +2,7 @@ VISIBILITY_PRIVATE = 'prv'
 VISIBILITY_PUBLIC = 'pub'
 DEFAULT_RECORD_COUNT = 10
 
+
 class MemberStatus(object):
 
     SUBSCRIBED = 'subscribed'

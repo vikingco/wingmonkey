@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from wingmonkey.lists import ListCollectionSerializer
+from wingmonkey.lists import ListCollectionSerializer, get_all_lists
 from wingmonkey.members import get_all_members_async
 
 ADMIN_UNSUBSCRIBE = 'Unsubscribed by an admin'
@@ -17,13 +17,8 @@ def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, re
     :return: list of memberlists
     """
     if not list_ids:
-        list_collection_serializer = ListCollectionSerializer()
 
-        # get list count
-        list_count = list_collection_serializer.read(count=1, extra_parameters=dict(fields=['total_items'])).total_items
-
-        # get all lists
-        list_collection = list_collection_serializer.read(count=list_count)
+        list_collection = get_all_lists()
         list_ids = [l['id'] for l in list_collection.lists]
 
     if params:
