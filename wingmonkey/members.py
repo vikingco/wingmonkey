@@ -193,7 +193,7 @@ class MemberBatchRequest(MailChimpData):
         """
 
         if len(members) > 500:
-            raise ClientException(0, 'max 500 members are supported in a batch request' )
+            raise ClientException(0, 'max 500 members are supported in a batch request')
 
         self.members = members
         self.update_existing = update_existing

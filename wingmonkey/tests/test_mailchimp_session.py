@@ -2,6 +2,7 @@ from requests_mock import Mocker
 from requests.exceptions import Timeout, ConnectionError
 from json import dumps
 from pytest import raises, fixture
+from aioresponses import aioresponses
 
 from wingmonkey.settings import MAILCHIMP_ROOT, MAILCHIMP_API_KEY
 from wingmonkey.mailchimp_session import MailChimpSession, ClientException
@@ -114,3 +115,57 @@ def test_mailchimsession_connection_error_exception(mailchimp_session):
 def test_client_exception_representation():
     exception = ClientException(400, 'Error Message')
     assert exception.__repr__() == '400: Error Message'
+
+
+def test_mailchimp_session_async_get(mailchimp_session):
+    expected = 'is caturday day Every'
+
+    with aioresponses() as request_mock:
+        request_mock.get(f'{MAILCHIMP_ROOT}/miauw', payload=expected)
+        response = mailchimp_session.loop.run_until_complete(mailchimp_session.async_get('miauw'))
+        assert response == expected
+
+
+def test_mailchimp_session_async_post(mailchimp_session):
+    expected = dumps('{"posted":true}')
+    with aioresponses() as request_mock:
+        request_mock.post(f'{MAILCHIMP_ROOT}/', body=expected, payload='ok')
+        response = mailchimp_session.loop.run_until_complete(mailchimp_session.async_post(json=expected))
+        response_json = mailchimp_session.loop.run_until_complete(response.json())
+        assert response_json == 'ok'
+
+
+def test_mailchimp_session_async_patch(mailchimp_session):
+    expected = dumps('{"patched":true}')
+    with aioresponses() as request_mock:
+        request_mock.patch(f'{MAILCHIMP_ROOT}/', body=expected, payload='ok')
+        response = mailchimp_session.loop.run_until_complete(mailchimp_session.async_patch(json=expected))
+        response_json = mailchimp_session.loop.run_until_complete(response.json())
+        assert response_json == 'ok'
+
+
+def test_mailchimp_session_async_delete(mailchimp_session):
+    expected = dumps('{"deleted":true}')
+    with aioresponses() as request_mock:
+        request_mock.delete(f'{MAILCHIMP_ROOT}/', body=expected, payload='ok')
+        response = mailchimp_session.loop.run_until_complete(mailchimp_session.async_delete(json=expected))
+        response_json = mailchimp_session.loop.run_until_complete(response.json())
+        assert response_json == 'ok'
+
+
+def test_mailchimsession_async_http_exception(mailchimp_session):
+    with aioresponses() as request_mock:
+        request_mock.get(f'{MAILCHIMP_ROOT}/', status=400)
+        assert raises(ClientException, mailchimp_session.loop.run_until_complete, mailchimp_session.async_get())
+
+
+def test_mailchimsession_async_time_out_exception(mailchimp_session):
+    with aioresponses() as request_mock:
+        request_mock.get(f'{MAILCHIMP_ROOT}/', status=504)
+        assert raises(ClientException, mailchimp_session.loop.run_until_complete, mailchimp_session.async_get())
+
+
+def test_mailchimsession_async_client_connection_exception(mailchimp_session):
+    with aioresponses() as request_mock:
+        request_mock.get(f'{MAILCHIMP_ROOT}/', status=503)
+        assert raises(ClientException, mailchimp_session.loop.run_until_complete, mailchimp_session.async_get())
