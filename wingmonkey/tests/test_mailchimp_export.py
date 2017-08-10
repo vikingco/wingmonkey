@@ -79,6 +79,20 @@ def test_get_all_members(expected_members, expected_merge_field_collection):
         assert members[1].email_address == 'vanessa64@hotmail.com'
 
 
+def test_get_all_members_default_params(expected_members, expected_merge_field_collection):
+    list_id = 'jbrrwky1689'
+    status = MemberStatus.SUBSCRIBED
+    query_string = f'apikey={MAILCHIMP_API_KEY}&id={list_id}&status={status}'
+    with Mocker() as request_mock:
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_merge_field_collection["list_id"]}/merge-fields',
+                         text=dumps(expected_merge_field_collection))
+        request_mock.get(f'{MAILCHIMP_EXPORT_ROOT}/list/?{query_string}',
+                         content=expected_members, complete_qs=True)
+        members = get_all_members(list_id)
+        assert members[0].email_address == 'djones@hotmail.com'
+        assert members[1].email_address == 'vanessa64@hotmail.com'
+
+
 def test_get_all_members_hashed(expected_merge_field_collection):
     list_id = 'jbrrwky1689'
     status = MemberStatus.SUBSCRIBED

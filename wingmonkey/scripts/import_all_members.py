@@ -1,7 +1,7 @@
 from datetime import datetime
 
-from wingmonkey.lists import ListCollectionSerializer, get_all_lists
-from wingmonkey.members import get_all_members_async
+from wingmonkey.lists import get_all_lists
+from wingmonkey.async_operations import get_all_members_async
 
 ADMIN_UNSUBSCRIBE = 'Unsubscribed by an admin'
 

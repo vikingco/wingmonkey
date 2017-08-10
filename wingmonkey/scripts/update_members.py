@@ -1,5 +1,5 @@
 from wingmonkey.mailchimp_session import MailChimpSession
-from wingmonkey.members import get_all_members_async
+from wingmonkey.async_operations import get_all_members_async
 from wingmonkey.batch_operations import (BatchOperation, BatchOperationCollection, BatchOperationResource,
                                          BatchOperationSerializer, BatchOperationResourceSerializer)
 from wingmonkey.enums import MemberStatus

@@ -31,7 +31,6 @@ def import_members_csv(list_id, csv_file, delimiter=','):
             imported_list.append(mapped)
 
     member_list = []
-
     for member in imported_list:
 
         email_address = member.get('email')

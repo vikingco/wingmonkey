@@ -24,10 +24,8 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
     :return: list of Member instances
     """
 
-    query_parameters = dict(apikey=MAILCHIMP_API_KEY, id=list_id)
+    query_parameters = dict(apikey=MAILCHIMP_API_KEY, id=list_id, status=status)
 
-    if status:
-        query_parameters.update(dict(status=status))
     if segment:
         query_parameters.update(dict(segment=segment))
     if since:

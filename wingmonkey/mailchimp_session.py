@@ -1,5 +1,5 @@
 from logging import getLogger
-from asyncio import get_event_loop, TimeoutError
+from asyncio import get_event_loop, TimeoutError, new_event_loop, set_event_loop
 
 from requests import Session, exceptions
 from requests.auth import HTTPBasicAuth
@@ -11,7 +11,6 @@ from aiohttp.connector import TCPConnector
 from wingmonkey.settings import MAILCHIMP_ROOT, MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS
 
 logger = getLogger(__name__)
-loop = get_event_loop()
 
 
 class MailChimpSession(object):
@@ -26,12 +25,25 @@ class MailChimpSession(object):
         # regular requests session
         self.session = Session()
         # async aiohttp session
-        connector = TCPConnector(loop=loop, limit=MAILCHIMP_MAX_CONNECTIONS)
+        try:
+            self.loop = get_event_loop()
+        except RuntimeError:
+            loop = new_event_loop()
+            set_event_loop(loop)
+            self.loop = loop
+
+        connector = TCPConnector(loop=self.loop, limit=MAILCHIMP_MAX_CONNECTIONS)
         self.async_session = ClientSession(connector=connector)
 
     def __del__(self):
         self.session.close()
         self.async_session.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
 
     def _request(self, method, url=None, json=None, query_parameters=None, stream=False):
         """
@@ -60,24 +72,16 @@ class MailChimpSession(object):
         except exceptions.ConnectionError:
             raise ClientException(503, 'Can not connect to server')
 
-    def get(self, url=None, json=None, query_parameters=None, stream=False, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_get(url, json, query_parameters))
+    def get(self, url=None, json=None, query_parameters=None, stream=False):
         return self._request(self.session.get, url=url, json=json, query_parameters=query_parameters, stream=stream)
 
-    def post(self, url=None, json=None, query_parameters=None, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_post(url, json, query_parameters))
+    def post(self, url=None, json=None, query_parameters=None):
         return self._request(self.session.post, url=url, json=json, query_parameters=query_parameters)
 
-    def patch(self, url=None, json=None, query_parameters=None, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_patch(url, json, query_parameters))
+    def patch(self, url=None, json=None, query_parameters=None):
         return self._request(self.session.patch, url=url, json=json, query_parameters=query_parameters)
 
-    def delete(self, url=None, json=None, query_parameters=None, async_request=False):
-        if async_request:
-            return loop.run_until_complete(self.async_delete(url, json, query_parameters))
+    def delete(self, url=None, json=None, query_parameters=None):
         return self._request(self.session.delete, url=url, json=json, query_parameters=query_parameters)
 
     async def _async_request(self, method, url=None, json=None, query_parameters=None):
