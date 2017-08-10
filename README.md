@@ -67,6 +67,7 @@ all_updated_members_since_yesterday = get_all_members_async(list_id=list_id, ext
 #### batch update of a large list of members 
 * This will return a list of corresponding batch operation resources (1 for every 500 members)
 http://developer.mailchimp.com/documentation/mailchimp/reference/batches/#create-post_batches
+http://developer.mailchimp.com/documentation/mailchimp/reference/lists/#create-post_lists_list_id
 
 ```
 from wingmonkey.async_operations import batch_update_members_async
