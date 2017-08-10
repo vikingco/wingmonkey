@@ -2,7 +2,6 @@ from asyncio import get_event_loop, gather, Queue, sleep as async_sleep
 from math import ceil
 from time import sleep
 from uuid import uuid4
-from json import loads
 
 from logging import getLogger
 

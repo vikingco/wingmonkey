@@ -41,3 +41,37 @@ member_serializer = MemberSerializer()
 
 newly_added_member = member_serializer.create(list_id=list_id, instance=member_to_add)
 ```
+
+#### get all members of a list
+
+```
+
+from wingmonkey.async_operations import get_all_members_async
+from datetime import datetime, timedelta
+
+list_id = 'A_VALID_LIST_ID'
+```
+
+* all members
+```
+all_list_members = get_all_members_async(list_id=list_id)
+```
+
+* all members updated since specific date (take care to use the correct string format for datetime)
+```
+date_since = datetime.strftime(datetime.now() - timedelta(days=1), '%Y-%m-%dT%H:%M:%S')
+extra_params = {'since_last_changed': date_since }
+all_updated_members_since_yesterday = get_all_members_async(list_id=list_id, extra_params=extra_params)
+```
+
+#### batch update of a large list of members 
+* This will return a list of corresponding batch operation resources (1 for every 500 members)
+http://developer.mailchimp.com/documentation/mailchimp/reference/batches/#create-post_batches
+
+```
+from wingmonkey.async_operations import batch_update_members_async
+list_id = 'A_VALID_LIST_ID'
+member_list = [A_LIST_OF_MEMBER_INSTANCES]
+
+batch_operation_resource_list = batch_update_members_async(list_id=list_id, member_list=member_list)
+```
