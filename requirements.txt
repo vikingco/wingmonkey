@@ -1,5 +1,5 @@
 # Python requests library
-requests==requests==2.18.1
+requests==2.18.1
 
 # Asynchronous requests
 aiohttp==2.2.0
