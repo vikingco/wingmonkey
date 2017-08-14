@@ -32,8 +32,10 @@ def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, re
     all_members = []
     start = datetime.now()
     for list_id in list_ids:
-        all_members.append(get_all_members_async(list_id, max_count=1000, max_chunks=chunks, extra_params=params,
-                                                 retry=retry))
+        member_collection = get_all_members_async(list_id, max_count=1000, max_chunks=chunks, extra_params=params,
+                                                  retry=retry)
+        if member_collection:
+            all_members.append(member_collection)
     if print_time:
         finish = datetime.now()
         print(f'started: {start}  , finished: {finish}')
