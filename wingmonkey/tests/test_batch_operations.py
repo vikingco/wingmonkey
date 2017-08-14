@@ -19,7 +19,8 @@ def expected_batch_operation_resource():
         'errored_operations': 0,
         'submitted_at': str(datetime.today()),
         'completed_at': None,
-        'response_body_url': 'https://amailchimp/link/goes/here'
+        'response_body_url': 'https://amailchimp/link/goes/here',
+        '_links': None,
     }
 
 

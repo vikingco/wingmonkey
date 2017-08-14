@@ -19,6 +19,7 @@ class BatchOperationResourceSerializer(Schema):
     submitted_at = fields.DateTime()
     completed_at = fields.DateTime()
     response_body_url = fields.Str()
+    _links = fields.List(cls_or_instance=fields.Dict())
 
     def read(self, batch_id):
         response = session.get(f'batches/{batch_id}')
@@ -32,7 +33,7 @@ class BatchOperationResourceSerializer(Schema):
 class BatchOperationResource(MailChimpData):
 
     def __init__(self, id=None, status=None, total_operations=None, finished_operations=None, errored_operations=None,
-                 submitted_at=None, completed_at=None, response_body_url=None):
+                 submitted_at=None, completed_at=None, response_body_url=None, _links=None):
 
         self.id = id
         self.status = status
@@ -42,6 +43,32 @@ class BatchOperationResource(MailChimpData):
         self.submitted_at = submitted_at
         self.completed_at = completed_at
         self.response_body_url = response_body_url
+        self._links = _links
+
+
+class BatchOperationResourceCollectionSerializer(Schema):
+
+    batches = fields.List(cls_or_instance=fields.Nested(BatchOperationResourceSerializer))
+    total_items = fields.Int()
+    _links = fields.List(cls_or_instance=fields.Dict())
+
+    def read(self):
+        # get count total items
+        response = session.get('batches', query_parameters=dict(fields=['total_items']))
+        total_items = response.json()['total_items']
+
+        # get all batches
+        response = session.get('batches', query_parameters=dict(count=total_items))
+        return BatchOperationResourceCollection(**self.load(response.json()).data)
+
+
+class BatchOperationResourceCollection(MailChimpData):
+
+    def __init__(self, batches=None, total_items=0, _links=None):
+
+        self.batches = batches
+        self.total_items = total_items
+        self._links = _links
 
 
 class BatchOperationSerializer(Schema):
