@@ -192,4 +192,4 @@ def _calculate_count(total_member_count, max_count, max_chunks):
         return max_count
     else:
         count = ceil(total_member_count/max_chunks)
-        return count if count > 0 else 1
+        return count
