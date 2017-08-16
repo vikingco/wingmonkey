@@ -60,7 +60,7 @@ class MailChimpSession(object):
             url = ''
 
         try:
-            logger.warning('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
+            logger.debug('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
             response = method(f'{self.api_endpoint}/{url}', headers={'Accept': 'application/json'},
                               data=json, params=query_parameters, auth=auth, stream=stream)
             response.raise_for_status()
