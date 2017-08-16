@@ -53,12 +53,12 @@ class MergeFieldSerializer(Schema):
         :param merge_field_instance: MergeField
         :return: updated MergeField instance on server
         """
-        self.only = ('tag', 'name', 'required', 'default_value', 'public', 'display_order', 'options', 'help_text')
+        self.exclude = merge_field_instance.empty_fields
         self._update_fields()
 
         response = session.patch(f'lists/{list_id}/merge-fields/{merge_field_instance.merge_id}',
                                  json=self.dumps(merge_field_instance).data)
-        self.only = ()
+        self.exclude = ()
         self._update_fields()
         if response:
             return MergeField(**self.load(response.json()).data)
