@@ -4,8 +4,6 @@ from wingmonkey.enums import SegmentFieldTypes
 from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
 
-session = MailChimpSession()
-
 
 class SegmentSerializer(Schema):
 
@@ -19,6 +17,13 @@ class SegmentSerializer(Schema):
     list_id = fields.Str()
     _links = fields.List(cls_or_instance=fields.Dict())
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def create(self, list_id, segment_instance):
         """
         :param list_id: id of list the segment will be added to
@@ -28,7 +33,7 @@ class SegmentSerializer(Schema):
         self.exclude = segment_instance.empty_fields
         self._update_fields()
 
-        response = session.post(f'lists/{list_id}/segments', json=self.dumps(segment_instance).data)
+        response = self.session.post(f'lists/{list_id}/segments', json=self.dumps(segment_instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -41,7 +46,7 @@ class SegmentSerializer(Schema):
         :return: Segment instance
         """
 
-        response = session.get(f'lists/{list_id}/segments/{segment_id}')
+        response = self.session.get(f'lists/{list_id}/segments/{segment_id}')
         return Segment(**self.load(response.json()).data)
 
     def update(self, list_id, segment_instance):
@@ -53,7 +58,7 @@ class SegmentSerializer(Schema):
         self.only = ('name', 'options')
         self._update_fields()
 
-        response = session.patch(f'lists/{list_id}/segments/{segment_instance.id}',
+        response = self.session.patch(f'lists/{list_id}/segments/{segment_instance.id}',
                                  json=self.dumps(segment_instance).data)
         self.only = ()
         self._update_fields()
@@ -66,7 +71,7 @@ class SegmentSerializer(Schema):
         :param merge_id: id of segment to delete
         :return: boolean
         """
-        if session.delete(f'lists/{list_id}/segments/{segment_id}'):
+        if self.session.delete(f'lists/{list_id}/segments/{segment_id}'):
             return True
 
 
@@ -93,13 +98,20 @@ class SegmentCollectionSerializer(Schema):
     total_items = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def read(self, list_id):
         """
         :param list_id: id of list the segments are defined for
         :return: SegmentsCollection
         """
 
-        response = session.get(f'lists/{list_id}/segments')
+        response = self.session.get(f'lists/{list_id}/segments')
         return SegmentCollection(**self.load(response.json()).data)
 
 

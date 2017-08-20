@@ -6,8 +6,6 @@ from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.members import MemberSerializer
 
-session = MailChimpSession()
-
 
 class BatchOperationResourceSerializer(Schema):
 
@@ -21,12 +19,19 @@ class BatchOperationResourceSerializer(Schema):
     response_body_url = fields.Str()
     _links = fields.List(cls_or_instance=fields.Dict())
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def read(self, batch_id):
-        response = session.get(f'batches/{batch_id}')
+        response = self.session.get(f'batches/{batch_id}')
         return BatchOperationResource(**BatchOperationResourceSerializer().load(response.json()).data)
 
     def delete(self, batch_id):
-        if session.delete(f'batches/{batch_id}'):
+        if self.session.delete(f'batches/{batch_id}'):
             return True
 
 
@@ -52,13 +57,20 @@ class BatchOperationResourceCollectionSerializer(Schema):
     total_items = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def read(self):
         # get count total items
-        response = session.get('batches', query_parameters=dict(fields=['total_items']))
+        response = self.session.get('batches', query_parameters=dict(fields=['total_items']))
         total_items = response.json()['total_items']
 
         # get all batches
-        response = session.get('batches', query_parameters=dict(count=total_items))
+        response = self.session.get('batches', query_parameters=dict(count=total_items))
         return BatchOperationResourceCollection(**self.load(response.json()).data)
 
 
@@ -133,7 +145,8 @@ def _batch_members_operation(list_id, members_list, method):
         operations.append(BatchOperation(method=method, path=path, body=member_serializer.dumps(member).data))
 
     batch_operations = BatchOperationCollection(operations)
-    response = session.post('batches', json=batch_operations_serializer.dumps(batch_operations).data)
+    with MailChimpSession() as session:
+        response = session.post('batches', json=batch_operations_serializer.dumps(batch_operations).data)
 
     return BatchOperationResource(**batch_operation_resource_serializer.load(response.json()).data)
 

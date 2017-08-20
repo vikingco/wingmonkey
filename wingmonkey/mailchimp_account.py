@@ -3,8 +3,6 @@ from marshmallow import Schema, fields
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.mailchimp_session import MailChimpSession
 
-session = MailChimpSession()
-
 
 class MailChimpAccountInfoSerializer(Schema):
     account_id = fields.Str()
@@ -18,8 +16,15 @@ class MailChimpAccountInfoSerializer(Schema):
     contact = fields.Dict()
     total_subscribers = fields.Int()
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def read(self):
-        response = session.get()
+        response = self.session.get()
         return MailChimpAccountInfo(**self.load(response.json()).data)
 
 

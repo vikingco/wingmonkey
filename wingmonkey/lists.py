@@ -8,7 +8,6 @@ from wingmonkey.enums import VISIBILITY_PRIVATE, DEFAULT_RECORD_COUNT
 from wingmonkey.settings import DEFAULT_PERMISSION_REMINDER, CAMPAIGN_DEFAULTS, DEFAULT_CONTACT
 
 logger = getLogger(__name__)
-session = MailChimpSession()
 
 
 class ListSerializer(Schema):
@@ -37,6 +36,13 @@ class ListSerializer(Schema):
     stats = fields.Dict()
     _links = fields.List(cls_or_instance=fields.Dict())
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def create(self, instance):
         """
         create list on mailchimp server
@@ -48,7 +54,7 @@ class ListSerializer(Schema):
         self.exclude = instance.empty_fields
         self._update_fields()
 
-        response = session.post('lists', json=self.dumps(instance).data)
+        response = self.session.post('lists', json=self.dumps(instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -63,12 +69,12 @@ class ListSerializer(Schema):
         # If no id is given we'll get the first list we find on the server
         if list_id is None:
             try:
-                list_id = session.get('lists').json()['lists'][0]['id']
+                list_id = self.session.get('lists').json()['lists'][0]['id']
             except IndexError:
                 logger.warning('No lists found on server')
                 return
 
-        response = session.get(f'lists/{list_id}')
+        response = self.session.get(f'lists/{list_id}')
         return List(**self.load(response.json()).data)
 
     def update(self, instance):
@@ -80,7 +86,7 @@ class ListSerializer(Schema):
                      'notify_on_subscribe', 'email_type_option', 'visibility')
         self._update_fields()
 
-        response = session.patch(f'lists/{instance.id}', json=self.dumps(instance).data)
+        response = self.session.patch(f'lists/{instance.id}', json=self.dumps(instance).data)
         self.only = ()
         self._update_fields()
         if response:
@@ -91,7 +97,7 @@ class ListSerializer(Schema):
         delete list from mailchimp server
         :return: Bool
         """
-        if session.delete(f'lists/{instance.id}'):
+        if self.session.delete(f'lists/{instance.id}'):
             return True
 
 
@@ -132,11 +138,18 @@ class ListCollectionSerializer(Schema):
     lists = fields.List(cls_or_instance=fields.Nested(ListSerializer))
     total_items = fields.Int()
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def read(self, count=DEFAULT_RECORD_COUNT, extra_parameters=None):
         query_parameters = dict(count=count)
         if extra_parameters:
             query_parameters.update(extra_parameters)
-        response = session.get('lists', query_parameters=query_parameters)
+        response = self.session.get('lists', query_parameters=query_parameters)
         return ListCollection(**self.load(response.json()).data)
 
 
