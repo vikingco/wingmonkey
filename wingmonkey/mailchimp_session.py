@@ -32,7 +32,7 @@ class MailChimpSession(object):
             set_event_loop(loop)
             self.loop = loop
 
-        connector = TCPConnector(loop=self.loop, limit=MAILCHIMP_MAX_CONNECTIONS)
+        connector = TCPConnector(loop=self.loop, limit=MAILCHIMP_MAX_CONNECTIONS, verify_ssl=False)
         self.async_session = ClientSession(connector=connector)
 
     def __del__(self):
