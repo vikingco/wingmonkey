@@ -11,7 +11,6 @@ from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.enums import MemberStatus
 
 logger = getLogger(__name__)
-session = MailChimpSession()
 
 
 class MemberSerializer(Schema):
@@ -45,6 +44,13 @@ class MemberSerializer(Schema):
     list_id = fields.Str()
     _links = fields.List(cls_or_instance=fields.Dict())
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def create(self, list_id, instance):
         """
         :param list id: str: id of list to add this member to
@@ -54,7 +60,7 @@ class MemberSerializer(Schema):
         self.exclude = instance.empty_fields
         self._update_fields()
 
-        response = session.post(f'lists/{list_id}/members', json=self.dumps(instance).data)
+        response = self.session.post(f'lists/{list_id}/members', json=self.dumps(instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -70,13 +76,13 @@ class MemberSerializer(Schema):
         # If no id is given we'll get the first member of the first list we find on the server
         if member_id is None:
             try:
-                member_id = session.get(f'lists/{list_id}/members',
+                member_id = self.session.get(f'lists/{list_id}/members',
                                         query_parameters=query).json()['members'][0]['id']
             except IndexError:
                 logger.warning('No members found for list %s', list_id)
                 return
 
-        response = session.get(f'lists/{list_id}/members/{member_id}', query_parameters=query)
+        response = self.session.get(f'lists/{list_id}/members/{member_id}', query_parameters=query)
         return Member(**self.load(response.json()).data)
 
     def update(self, list_id, instance, query=None):
@@ -91,7 +97,7 @@ class MemberSerializer(Schema):
                      'location')
         self._update_fields()
 
-        response = session.patch(f'lists/{list_id}/members/{instance.id}', json=self.dumps(instance).data,
+        response = self.session.patch(f'lists/{list_id}/members/{instance.id}', json=self.dumps(instance).data,
                                  query_parameters=query)
         self.only = ()
         self._update_fields()
@@ -99,7 +105,7 @@ class MemberSerializer(Schema):
             return Member(**self.load(response.json()).data)
 
     def delete(self, list_id, member_id):
-        if session.delete(f'lists/{list_id}/members/{member_id}'):
+        if self.session.delete(f'lists/{list_id}/members/{member_id}'):
             return True
 
 
@@ -150,13 +156,20 @@ class MemberCollectionSerializer(Schema):
     total_items = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def read(self, list_id, query=None):
         """
         :param list_id: str: List id
         :param query: dict: query parameters
         :return: Members instance
         """
-        response = session.get(f'lists/{list_id}/members', query_parameters=query)
+        response = self.session.get(f'lists/{list_id}/members', query_parameters=query)
         return MemberCollection(**self.load(response.json()).data)
 
 
@@ -176,9 +189,16 @@ class MemberBatchRequestSerializer(Schema):
                                                                                 'merge_fields', 'language')))
     update_existing = fields.Boolean()
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def create(self, list_id, member_batch_request_instance):
 
-        response = session.post(f'lists/{list_id}', json=self.dumps(member_batch_request_instance).data)
+        response = self.session.post(f'lists/{list_id}', json=self.dumps(member_batch_request_instance).data)
         if response:
             return MemberBatchResponse(**MemberBatchResponseSerializer().load(response.json()).data)
 

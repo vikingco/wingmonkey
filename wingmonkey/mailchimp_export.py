@@ -10,9 +10,6 @@ from wingmonkey.members import Member
 from wingmonkey.merge_fields import MergeFieldCollectionSerializer
 
 
-session = MailChimpSession(api_endpoint=MAILCHIMP_EXPORT_ROOT)
-
-
 def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since=None, hashed=None):
     """
     
@@ -36,7 +33,8 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
     members = list()
     merge_fields = MergeFieldCollectionSerializer().read(list_id)
 
-    with session.get('list/', query_parameters=query_parameters, stream=True) as response:
+    with MailChimpSession(api_endpoint=MAILCHIMP_EXPORT_ROOT).get('list/', query_parameters=query_parameters,
+                                                                  stream=True) as response:
         lines = response.iter_lines()
         header = loads(next(lines))  # first line is a header
         for line in lines:

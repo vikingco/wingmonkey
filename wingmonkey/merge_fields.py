@@ -5,8 +5,6 @@ from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.lists import get_all_lists
 
-session = MailChimpSession()
-
 
 class MergeFieldSerializer(Schema):
 
@@ -23,6 +21,13 @@ class MergeFieldSerializer(Schema):
     list_id = fields.Str()
     _links = fields.Dict()
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def create(self, list_id, merge_field_instance):
         """
         :param list_id: id of list the merge field will be defined for
@@ -32,7 +37,7 @@ class MergeFieldSerializer(Schema):
         self.exclude = merge_field_instance.empty_fields
         self._update_fields()
 
-        response = session.post(f'lists/{list_id}/merge-fields', json=self.dumps(merge_field_instance).data)
+        response = self.session.post(f'lists/{list_id}/merge-fields', json=self.dumps(merge_field_instance).data)
         self.exclude = ()
         self._update_fields()
         if response:
@@ -44,7 +49,7 @@ class MergeFieldSerializer(Schema):
         :param merge_id: id of merge field 
         :return: MergeField instance found on server
         """
-        response = session.get(f'lists/{list_id}/merge-fields/{merge_id}')
+        response = self.session.get(f'lists/{list_id}/merge-fields/{merge_id}')
         return MergeField(**self.load(response.json()).data)
 
     def update(self, list_id, merge_field_instance):
@@ -56,7 +61,7 @@ class MergeFieldSerializer(Schema):
         self.exclude = merge_field_instance.empty_fields
         self._update_fields()
 
-        response = session.patch(f'lists/{list_id}/merge-fields/{merge_field_instance.merge_id}',
+        response = self.session.patch(f'lists/{list_id}/merge-fields/{merge_field_instance.merge_id}',
                                  json=self.dumps(merge_field_instance).data)
         self.exclude = ()
         self._update_fields()
@@ -69,7 +74,7 @@ class MergeFieldSerializer(Schema):
         :param merge_id: id of merge field to delete
         :return: boolean
         """
-        if session.delete(f'lists/{list_id}/merge-fields/{merge_id}'):
+        if self.session.delete(f'lists/{list_id}/merge-fields/{merge_id}'):
             return True
 
 
@@ -101,6 +106,13 @@ class MergeFieldCollectionSerializer(Schema):
     total_items = fields.Int()
     _links = fields.Dict()
 
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+        if not session:
+            session = MailChimpSession()
+        self.session = session
+
     def read(self, list_id):
         """
         :param list_id: id of list the merge fields are defined for
@@ -108,7 +120,7 @@ class MergeFieldCollectionSerializer(Schema):
         """
         count = self._get_total_items_count(list_id)
 
-        response = session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=count))
+        response = self.session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=count))
         return MergeFieldCollection(**self.load(response.json()).data)
 
     def _get_total_items_count(self, list_id):
@@ -118,7 +130,8 @@ class MergeFieldCollectionSerializer(Schema):
         :return: int
         """
 
-        response = session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=1, fields=['total_items']))
+        response = self.session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=1,
+                                                                                           fields=['total_items']))
         return MergeFieldCollection(**self.load(response.json()).data).total_items
 
 
