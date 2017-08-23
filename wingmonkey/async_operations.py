@@ -63,6 +63,17 @@ async def _get_chunk(queue, results):
 async def _batch_update_members_async(queue, list_id, member_list, max_chunks, batch_operation_collection_size=25000,
                                       retry=5):
 
+    """
+    What happens here:
+    1. Split a list of member instances in partial lists of <batch_operation_collection_size>
+    2. Per partial list create MemberbatchRequest instance (500 members per instance, as that's the mailchimp limit)
+    3. Combine all MemberBatchRequest instances in one BatchOperationCollection instance and add to queue
+    4. When this is done for all partial lists process the queue, <max_chunks> tasks at a time
+    5. Gather and return results when queue is processed completely
+    batch operations reference: http://developer.mailchimp.com/documentation/mailchimp/reference/batches/#%20
+    :return: List of BatchOperationResource instances
+    """
+
     tasks = []
     results = []
 
