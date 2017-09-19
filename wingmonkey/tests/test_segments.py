@@ -73,21 +73,24 @@ def test_segment_create(expected_segment):
 def test_segment_read(expected_segment):
     segment = Segment(**expected_segment)
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments/{expected_segment["id"]}', text=dumps(expected_segment))
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments/{expected_segment["id"]}',
+                         text=dumps(expected_segment))
         assert compare_result(segment_serializer.read(segment.list_id, segment.id), expected_segment)
 
 
 def test_segment_update(expected_segment):
     segment = Segment(**expected_segment)
     with Mocker() as request_mock:
-        request_mock.patch(f'{MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments/{expected_segment["id"]}', text=dumps(expected_segment))
+        request_mock.patch(f'{MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments/{expected_segment["id"]}',
+                           text=dumps(expected_segment))
         assert compare_result(segment_serializer.update(segment.list_id, segment), expected_segment)
 
 
 def test_segment_delete(expected_segment):
     segment = Segment(**expected_segment)
     with Mocker() as request_mock:
-        request_mock.delete(f'{MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments/{expected_segment["id"]}', text='')
+        request_mock.delete(f'{MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments/{expected_segment["id"]}',
+                            text='')
         assert segment_serializer.delete(segment.list_id, segment.id)
 
 

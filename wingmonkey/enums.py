@@ -4,6 +4,7 @@ DEFAULT_RECORD_COUNT = 10
 
 MAX_MEMBERS_PER_BATCH = 500
 
+
 class MemberStatus(object):
 
     SUBSCRIBED = 'subscribed'

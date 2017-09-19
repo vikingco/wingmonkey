@@ -14,9 +14,9 @@ from wingmonkey.batch_operations import (BatchOperationResource, BatchOperation,
 
 logger = getLogger(__name__)
 
+
 async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=10):
     """
-
     :param func: Function to be called
     :param args: list , positional args for func
     :param kwargs: dict, keyword args for func
@@ -49,9 +49,9 @@ async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=10
                 return
             await async_sleep(sleepy_time)
 
+
 async def _get_chunk(queue, results):
     """
-
     :param queue: asyncio.Queue
     :param results: list
     """
@@ -118,12 +118,9 @@ def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_c
 
     while retry > 0:
         try:
-            responses = loop.run_until_complete(_batch_update_members_async(queue=queue, list_id=list_id,
-                                                                            member_list=member_list,
-                                                                            max_chunks=max_chunks,
-                                                                            batch_operation_collection_size=
-                                                                            members_per_call,
-                                                                            retry=retry))
+            responses = loop.run_until_complete(_batch_update_members_async(
+                queue=queue, list_id=list_id, member_list=member_list, max_chunks=max_chunks,
+                batch_operation_collection_size=members_per_call, retry=retry))
             json_responses = []
             for response in responses:
                 json_responses.append(loop.run_until_complete(response.json()))

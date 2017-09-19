@@ -63,4 +63,3 @@ def generate_chunks(input_list, chunk_size):
     """Generator that returns chunk_size slices of given list"""
     for i in range(0, len(input_list), chunk_size):
         yield input_list[i:i + chunk_size]
-

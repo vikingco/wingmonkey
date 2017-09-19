@@ -1,6 +1,3 @@
-from asyncio import get_event_loop, gather, Queue, sleep as async_sleep
-from math import ceil
-from time import sleep
 from hashlib import md5
 
 from logging import getLogger
@@ -77,7 +74,7 @@ class MemberSerializer(Schema):
         if member_id is None:
             try:
                 member_id = self.session.get(f'lists/{list_id}/members',
-                                        query_parameters=query).json()['members'][0]['id']
+                                             query_parameters=query).json()['members'][0]['id']
             except IndexError:
                 logger.warning('No members found for list %s', list_id)
                 return
@@ -98,7 +95,7 @@ class MemberSerializer(Schema):
         self._update_fields()
 
         response = self.session.patch(f'lists/{list_id}/members/{instance.id}', json=self.dumps(instance).data,
-                                 query_parameters=query)
+                                      query_parameters=query)
         self.only = ()
         self._update_fields()
         if response:

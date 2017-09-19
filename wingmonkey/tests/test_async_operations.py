@@ -1,9 +1,8 @@
 from copy import deepcopy
 from datetime import datetime
 from requests_mock import Mocker
-from requests.exceptions import Timeout, ConnectionError
 from json import dumps
-from pytest import raises, fixture
+from pytest import fixture
 from aioresponses import aioresponses
 
 from wingmonkey.settings import MAILCHIMP_ROOT

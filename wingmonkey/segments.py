@@ -59,7 +59,7 @@ class SegmentSerializer(Schema):
         self._update_fields()
 
         response = self.session.patch(f'lists/{list_id}/segments/{segment_instance.id}',
-                                 json=self.dumps(segment_instance).data)
+                                      json=self.dumps(segment_instance).data)
         self.only = ()
         self._update_fields()
         if response:

@@ -17,7 +17,7 @@ members_serializer = MemberCollectionSerializer()
 
 @fixture()
 def expected_member():
-    return {   
+    return {
         '_links': None,
         'email_address': 'adoringfan@stalkmail.com',
         'email_client': 'Lookout On Purpose',

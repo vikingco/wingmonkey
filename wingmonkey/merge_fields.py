@@ -46,7 +46,7 @@ class MergeFieldSerializer(Schema):
     def read(self, list_id, merge_id):
         """
         :param list_id: id of list the merge field is defined for
-        :param merge_id: id of merge field 
+        :param merge_id: id of merge field
         :return: MergeField instance found on server
         """
         response = self.session.get(f'lists/{list_id}/merge-fields/{merge_id}')
@@ -54,7 +54,7 @@ class MergeFieldSerializer(Schema):
 
     def update(self, list_id, merge_field_instance):
         """
-        :param list_id: id of list the merge field will be updated in 
+        :param list_id: id of list the merge field will be updated in
         :param merge_field_instance: MergeField
         :return: updated MergeField instance on server
         """
@@ -62,7 +62,7 @@ class MergeFieldSerializer(Schema):
         self._update_fields()
 
         response = self.session.patch(f'lists/{list_id}/merge-fields/{merge_field_instance.merge_id}',
-                                 json=self.dumps(merge_field_instance).data)
+                                      json=self.dumps(merge_field_instance).data)
         self.exclude = ()
         self._update_fields()
         if response:

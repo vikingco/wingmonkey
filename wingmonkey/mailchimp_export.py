@@ -12,7 +12,6 @@ from wingmonkey.merge_fields import MergeFieldCollectionSerializer
 
 def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since=None, hashed=None):
     """
-    
     :param list_id: string: id of list to get members from
     :param status: string: status of members to get (subscribed, unscubscribed, cleaned, pending, transactional)
     :param segment: int: id of segment to get members from
