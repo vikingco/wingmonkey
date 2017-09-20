@@ -62,7 +62,7 @@ class MailChimpSession(object):
         try:
             logger.debug('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
             response = method(f'{self.api_endpoint}/{url}', headers={'Accept': 'application/json'},
-                              data=json, params=query_parameters, auth=auth, stream=stream, timeout=10)
+                              data=json, params=query_parameters, auth=auth, stream=stream, timeout=5*60)
             response.raise_for_status()
             return response
         except exceptions.HTTPError:

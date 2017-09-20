@@ -17,8 +17,12 @@ def unsubscribe_members(list_id, member_list=None):
     """
 
     if not member_list:
-        member_list = get_all_members_async(list_id, max_count=1000, max_chunks=9,
-                                            extra_params=dict(status='subscribed'))
+        all_subscribed_members = get_all_members_async(list_id, max_count=1000, max_chunks=9,
+                                                       extra_params=dict(status='subscribed'))
+        if not all_subscribed_members:
+            return
+        member_list = all_subscribed_members
+
     members_to_update = []
 
     for member in member_list.members:
