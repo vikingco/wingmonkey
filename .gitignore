@@ -1,5 +1,6 @@
 # Python
 *.py[co]
+.eggs/
 
 # OSX
 .DS_Store
@@ -41,3 +42,5 @@ Icon
 .coverage
 __pycache__/
 
+# virtualenv
+.venv/

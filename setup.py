@@ -15,21 +15,34 @@ for req in requirements_file:
     if req.link:
         dependency_links.append(str(req.link))
 
+# Inject test requirements from requirements_test.txt into setup.py
+requirements_test_file = parse_requirements(path.join('requirements', 'requirements_test.txt'), session=PipSession())
+for req in requirements_test_file:
+    tests_require.append(str(req.req))
+    if req.link:
+        dependency_links.append(str(req.link))
+
+
 setup(
     name='wingmonkey',
-    version='0.1.0-beta',
-    packages=find_packages('.'),
-    include_package_data=True,
-    install_requires=install_requires,
+    version='0.1.0',
     url='https://github.com/vikingco/wingmonkey',
-    license='MIT',
+    license='BSD',
     author='Jonas Steur',
     author_email='jonas.steur@unleashed.be',
     description='mailchimp api v3 client',
+    packages=find_packages('.'),
+    include_package_data=True,
+    install_requires=install_requires,
+    tests_require=tests_require,
     dependency_links=dependency_links,
     classifiers=[
         'Intended Audience :: Developers',
         'Programming Language :: Python',
+        'Programming Language :: Python :: 3 :: Only',
+        'Programming Language :: Python :: 3.4',
+        'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
         'Operating System :: OS Independent',
         'Environment :: Web Environment',
     ],
