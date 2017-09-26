@@ -31,6 +31,7 @@ setup(
     author='Jonas Steur',
     author_email='jonas.steur@unleashed.be',
     description='mailchimp api v3 client',
+    long_description=open('README.md', 'r').read(),
     packages=find_packages('.'),
     include_package_data=True,
     install_requires=install_requires,
