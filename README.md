@@ -1,3 +1,6 @@
+[![Coverage Status](https://coveralls.io/repos/github/vikingco/wingmonkey/badge.svg)](https://coveralls.io/github/vikingco/wingmonkey)
+[![CI Status](https://travis-ci.org/vikingco/wingmonkey.svg?branch=master)](https://travis-ci.org/vikingco/wingmonkey)
+
 # wingmonkey
 mailchimp api v3 client
 
