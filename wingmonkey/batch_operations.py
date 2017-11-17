@@ -1,5 +1,6 @@
 from uuid import uuid4
 from marshmallow import Schema, fields
+from math import ceil
 
 from wingmonkey.enums import HttpMethods
 from wingmonkey.mailchimp_session import MailChimpSession
@@ -64,14 +65,19 @@ class BatchOperationResourceCollectionSerializer(Schema):
             session = MailChimpSession()
         self.session = session
 
-    def read(self):
+    def read(self, chunk_size=250):
         # get count total items
         response = self.session.get('batches', query_parameters=dict(fields=['total_items']))
         total_items = response.json()['total_items']
 
         # get all batches
-        response = self.session.get('batches', query_parameters=dict(count=total_items))
-        return BatchOperationResourceCollection(**self.load(response.json()).data)
+        response = self.session.get(
+                'batches', query_parameters=dict(count=chunk_size, offset=0)).json()
+        for i in range(ceil(total_items/chunk_size)-1):
+            response['batches'].extend(self.session.get(
+                'batches', query_parameters=dict(count=chunk_size, offset=chunk_size * i)).json()['batches']
+            )
+        return BatchOperationResourceCollection(**self.load(response).data)
 
 
 class BatchOperationResourceCollection(MailChimpData):

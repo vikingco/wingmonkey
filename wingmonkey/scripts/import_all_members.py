@@ -1,7 +1,10 @@
 from datetime import datetime
+from logging import getLogger
 
 from wingmonkey.lists import get_all_lists
 from wingmonkey.async_operations import get_all_members_async
+
+logger = getLogger(__name__)
 
 ADMIN_UNSUBSCRIBE = 'Unsubscribed by an admin'
 
@@ -38,7 +41,7 @@ def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, re
             all_members.append(member_collection)
     if print_time:
         finish = datetime.now()
-        print(f'started: {start}  , finished: {finish}')
+        logger.info(f'started: {start}  , finished: {finish}')
 
     return all_members
 
