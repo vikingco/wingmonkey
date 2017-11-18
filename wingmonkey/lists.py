@@ -166,7 +166,7 @@ class ListCollection(MailChimpData):
 
 def get_all_lists():
     """
-    Get all lists existing om mailchimp account
+    Get all lists existing on mailchimp account
     :return: ListCollection
     """
     list_collection_serializer = ListCollectionSerializer()

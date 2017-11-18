@@ -3,7 +3,7 @@ from pytest import fixture
 from logging import WARNING
 from json import dumps
 
-from wingmonkey.lists import List, ListCollection, ListSerializer, ListCollectionSerializer
+from wingmonkey.lists import List, ListCollection, ListSerializer, ListCollectionSerializer, get_all_lists
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import VISIBILITY_PRIVATE
 
@@ -173,3 +173,11 @@ def test_lists_read(expected_lists):
         expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
         assert mailchimp_lists.total_items == expected_lists.total_items
+
+
+def test_get_all_lists(expected_lists):
+    with Mocker() as request_mock:
+        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
+        mailchimp_lists = get_all_lists()
+        expected_lists = ListCollection(**expected_lists)
+        assert mailchimp_lists.lists == expected_lists.lists
