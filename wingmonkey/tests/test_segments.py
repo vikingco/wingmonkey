@@ -3,6 +3,7 @@ from pytest import fixture
 from json import dumps
 from datetime import datetime
 
+from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.segments import Segment, SegmentSerializer, SegmentCollection, SegmentCollectionSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import SegmentFieldTypes
@@ -103,3 +104,15 @@ def test_segments_collection_read(expected_segments_collection):
         expected_segments = SegmentCollection(**expected_segments_collection)
         assert segments_collection.segments[0]['id'] == expected_segments.segments[0]['id']
         assert segments_collection.total_items == expected_segments.total_items
+
+
+def test_segment_serializer():
+    session = MailChimpSession()
+    serializer = SegmentSerializer(session=session)
+    assert serializer.session, session
+
+
+def test_segment_collection_serializer():
+    session = MailChimpSession()
+    serializer = SegmentCollectionSerializer(session=session)
+    assert serializer.session == session

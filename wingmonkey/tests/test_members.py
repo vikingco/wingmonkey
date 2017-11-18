@@ -3,7 +3,7 @@ from pytest import fixture, raises
 from json import dumps
 from logging import WARNING
 
-from wingmonkey.mailchimp_session import ClientException
+from wingmonkey.mailchimp_session import ClientException, MailChimpSession
 from wingmonkey.members import (Member, MemberSerializer, MemberCollection, MemberCollectionSerializer,
                                 MemberBatchRequestSerializer, MemberBatchRequest)
 from wingmonkey.lists import ListSerializer
@@ -184,3 +184,9 @@ def test_member_batch_request(expected_member):
 def test_member_batch_request_memberlist_too_big():
     oversized_list = [Member() for _ in range(0, 501)]
     assert raises(ClientException, MemberBatchRequest, members=oversized_list)
+
+
+def test_member_serializer_without_session():
+    session = MailChimpSession()
+    serializer = MemberSerializer(session=session)
+    assert serializer.session == session

@@ -4,6 +4,7 @@ from logging import WARNING
 from json import dumps
 
 from wingmonkey.lists import List, ListCollection, ListSerializer, ListCollectionSerializer, get_all_lists
+from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import VISIBILITY_PRIVATE
 
@@ -181,3 +182,9 @@ def test_get_all_lists(expected_lists):
         mailchimp_lists = get_all_lists()
         expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
+
+
+def test_list_collection_serializer():
+    session = MailChimpSession()
+    list_collection_serializer = ListCollectionSerializer(session=session)
+    assert list_collection_serializer.session == session

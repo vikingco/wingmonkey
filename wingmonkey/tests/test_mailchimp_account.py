@@ -1,7 +1,7 @@
 from requests_mock import Mocker
 from json import dumps
 
-from wingmonkey.mailchimp_account import MailChimpAccountInfoSerializer
+from wingmonkey.mailchimp_account import MailChimpAccountInfoSerializer, MailChimpSession
 from wingmonkey.settings import MAILCHIMP_ROOT
 
 account_info_serializer = MailChimpAccountInfoSerializer()
@@ -34,3 +34,9 @@ def test_mailchimp_account_info():
         account_info = account_info_serializer.read()
         for key in account_info.__dict__.keys():
             assert account_info.__dict__[key] == expected[key]
+
+
+def test_mailchimp_account_info_serializer_without_session():
+    session = MailChimpSession()
+    account_info_serializer = MailChimpAccountInfoSerializer(session=session)
+    assert account_info_serializer.session == session
