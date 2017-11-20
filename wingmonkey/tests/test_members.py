@@ -5,7 +5,7 @@ from logging import WARNING
 
 from wingmonkey.mailchimp_session import ClientException, MailChimpSession
 from wingmonkey.members import (Member, MemberSerializer, MemberCollection, MemberCollectionSerializer,
-                                MemberBatchRequestSerializer, MemberBatchRequest)
+                                MemberBatchRequestSerializer, MemberBatchRequest, generate_member_id)
 from wingmonkey.lists import ListSerializer
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import MemberStatus
@@ -190,3 +190,13 @@ def test_member_serializer_without_session():
     session = MailChimpSession()
     serializer = MemberSerializer(session=session)
     assert serializer.session == session
+
+
+def test_generate_member_id_without_email_address():
+    assert not generate_member_id('')
+
+
+def test_generate_member_id():
+    """ Check if the md5 hash of some@email.com """
+    expected_hexdigest = 'd8ffeba65ee5baf57e4901690edc8e1b'
+    assert generate_member_id(email_address='some@email.com') == expected_hexdigest
