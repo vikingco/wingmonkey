@@ -2,8 +2,9 @@ from requests_mock import Mocker
 from pytest import fixture
 from json import dumps
 
+from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.merge_fields import (MergeField, MergeFieldSerializer, MergeFieldCollection,
-                                     MergeFieldCollectionSerializer)
+                                     MergeFieldCollectionSerializer, get_merge_field_mapping, match_tag_to_name)
 from wingmonkey.settings import MAILCHIMP_ROOT
 from wingmonkey.enums import MergeFieldTypes
 
@@ -65,6 +66,12 @@ def compare_result(merge_field, expected=None):
     return True
 
 
+def test_merge_field_with_tag_not_str(expected_merge_field):
+    merge_field = expected_merge_field.copy()
+    merge_field['tag'] = 123
+    assert MergeField(**merge_field).tag == '123'
+
+
 def test_merge_field_create(expected_merge_field):
     merge_field = MergeField(**expected_merge_field)
     with Mocker() as request_mock:
@@ -112,3 +119,25 @@ def test_merge_field_collection_read(expected_merge_field_collection):
         assert (merge_field_collection.merge_fields[0]['merge_id'] ==
                 expected_merge_fields.merge_fields[0]['merge_id'])
         assert merge_field_collection.total_items == expected_merge_fields.total_items
+
+
+def test_get_merge_field_mapping(expected_merge_field_collection, expected_merge_field):
+    mapped_collection = get_merge_field_mapping(MergeFieldCollection(**expected_merge_field_collection))
+
+    assert mapped_collection == {expected_merge_field['tag']: expected_merge_field['name']}
+
+
+def test_match_tag_to_name(expected_merge_field):
+    assert match_tag_to_name('Firestarter', expected_merge_field) == 'name'
+
+
+def test_merge_field_serializer():
+    session = MailChimpSession()
+    serializer = MergeFieldSerializer(session=session)
+    assert serializer.session == session
+
+
+def test_merge_field_collection_serializer():
+    session = MailChimpSession()
+    serializer = MergeFieldCollectionSerializer(session=session)
+    assert serializer.session == session
