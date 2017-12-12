@@ -145,10 +145,11 @@ class MergeFieldCollection(MailChimpData):
         self._links = _links
 
 
-def get_all_merge_fields(list_ids=None):
+def get_all_merge_fields(list_ids=None, session=None):
     """
     Get all merge fields for all lists
     :param list_ids: list : optional list of list ids, default is getting all mergefield for all lists
+    :param session: Mailchimp Session to be used
     :return: MergeFieldCollection
     """
     if not list_ids:
@@ -158,7 +159,7 @@ def get_all_merge_fields(list_ids=None):
     else:
         list_ids = list_ids
 
-    merge_field_collection_serializer = MergeFieldCollectionSerializer()
+    merge_field_collection_serializer = MergeFieldCollectionSerializer(session=session)
 
     all_merge_fields = MergeFieldCollection(merge_fields=[])
 

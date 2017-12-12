@@ -7,8 +7,7 @@ from requests.auth import HTTPBasicAuth
 from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
 
-
-from wingmonkey.settings import MAILCHIMP_ROOT, MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS
 
 logger = getLogger(__name__)
 
@@ -18,9 +17,13 @@ class MailChimpSession(object):
     class representing a mailchimp api session and it's available methods
     """
 
-    def __init__(self, api_endpoint=MAILCHIMP_ROOT):
+    def __init__(self, api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
 
         self.api_endpoint = api_endpoint
+        self.api_key = api_key
+
+        if self.api_key == DEFAULT_MAILCHIMP_API_KEY:
+            logger.warning(f'{self.__class__} using default api key setting')
 
         # regular requests session
         self.session = Session()
@@ -54,7 +57,7 @@ class MailChimpSession(object):
         :param stream return stream response
         :return: HTTPresponse
         """
-        auth = HTTPBasicAuth('mailchimpuser', MAILCHIMP_API_KEY)
+        auth = HTTPBasicAuth('mailchimpuser', self.api_key)
 
         if not url:
             url = ''
@@ -94,7 +97,7 @@ class MailChimpSession(object):
         :return: Coroutine
         """
 
-        auth = BasicAuth('mailchimpuser', MAILCHIMP_API_KEY)
+        auth = BasicAuth('mailchimpuser', self.api_key)
 
         if not url:
             url = ''

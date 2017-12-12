@@ -7,7 +7,7 @@ from wingmonkey.enums import MemberStatus
 NULL_VALUES = ['NA', 'none', 'None', 'null', 'Null', '']
 
 
-def import_members_csv(list_id, csv_file, delimiter=','):
+def import_members_csv(list_id, csv_file, delimiter=',', session=None):
     """
     csv spec:
     email,user_id,first_name,last_name,language,MERGE_FIELDS
@@ -15,11 +15,12 @@ def import_members_csv(list_id, csv_file, delimiter=','):
     :param list_id: str: id of list members belong to
     :param csv_file: str : csv file ( format has to be to spec as there are some expected fields)
     :param delimiter: str: delimiter used in csv file
+    :param session: MailChimpSession
     :return: list of Member instances
     """
 
     imported_list = []
-    merge_field_collection = get_all_merge_fields(list_ids=[list_id])
+    merge_field_collection = get_all_merge_fields(list_ids=[list_id], session=session)
     field_mapping = get_merge_field_mapping(merge_field_collection)
 
     with open(csv_file, 'r') as file:

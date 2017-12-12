@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from logging import getLogger
 
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY
 from wingmonkey.enums import MAX_MEMBERS_PER_BATCH
 from wingmonkey.mailchimp_session import MailChimpSession, ClientException
 from wingmonkey.members import (MemberBatchRequest, MemberBatchRequestSerializer, MemberCollection,
@@ -61,7 +62,7 @@ async def _get_chunk(queue, results):
 
 
 async def _batch_update_members_async(queue, list_id, member_list, max_chunks, batch_operation_collection_size=25000,
-                                      retry=5):
+                                      retry=5, api_endpoint=None, api_key=None):
 
     """
     What happens here:
@@ -77,7 +78,7 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
     tasks = []
     results = []
 
-    with MailChimpSession() as session:
+    with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
 
         for i in range(0, len(member_list), batch_operation_collection_size):
             partial_list = member_list[i:i + batch_operation_collection_size]
@@ -92,7 +93,7 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
             path = f'lists/{list_id}'
             for batch in batches:
                 operations.append(BatchOperation(method='POST', path=path,
-                                                 body=MemberBatchRequestSerializer().dumps(batch).data))
+                                                 body=MemberBatchRequestSerializer(session=session).dumps(batch).data))
 
             batch_operation_collection_serializer = BatchOperationCollectionSerializer()
 
@@ -111,7 +112,8 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
         return results
 
 
-def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_call=25000, retry=5, sleepy_time=5):
+def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_call=25000, retry=5, sleepy_time=5,
+                               api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
 
     loop = get_event_loop()
     queue = Queue()
@@ -120,7 +122,8 @@ def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_c
         try:
             responses = loop.run_until_complete(_batch_update_members_async(
                 queue=queue, list_id=list_id, member_list=member_list, max_chunks=max_chunks,
-                batch_operation_collection_size=members_per_call, retry=retry))
+                batch_operation_collection_size=members_per_call, retry=retry,
+                api_endpoint=api_endpoint, api_key=api_key))
             json_responses = []
             for response in responses:
                 json_responses.append(loop.run_until_complete(response.json()))
@@ -141,13 +144,14 @@ def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_c
             sleep(sleepy_time)
 
 
-async def _get_all_members_async(queue, list_id, count, max_chunks, total_member_count=0, extra_params=None, retry=3):
+async def _get_all_members_async(queue, list_id, count, max_chunks, total_member_count=0, extra_params=None, retry=3,
+                                 api_endpoint=None, api_key=None):
 
     tasks = []
     results = []
     extra_params = extra_params or {}
 
-    with MailChimpSession() as session:
+    with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
 
         for i in range(ceil(total_member_count / count)):
             queue.put_nowait(dict(func=session.async_get,
@@ -162,11 +166,16 @@ async def _get_all_members_async(queue, list_id, count, max_chunks, total_member
         return results
 
 
-def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=None, retry=3, sleepy_time=5):
+def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=None, retry=3, sleepy_time=5,
+                          api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
+
+    session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
+
     # get list total member count
     while retry > 0:
         try:
-            total_member_count = MemberCollectionSerializer().read(list_id, query=extra_params).total_items
+            total_member_count = MemberCollectionSerializer(session=session).read(list_id,
+                                                                                  query=extra_params).total_items
         except ClientException as e:
             logger.warning('getting member count for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1
@@ -184,7 +193,8 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
             responses = loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
                                                                        max_chunks=max_chunks,
                                                                        total_member_count=total_member_count,
-                                                                       extra_params=extra_params, retry=retry))
+                                                                       extra_params=extra_params, retry=retry,
+                                                                       api_endpoint=api_endpoint, api_key=api_key))
             all_members = {}
             for response in responses:
                 if not all_members.get('members'):

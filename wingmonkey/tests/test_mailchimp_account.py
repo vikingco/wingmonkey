@@ -2,7 +2,7 @@ from requests_mock import Mocker
 from json import dumps
 
 from wingmonkey.mailchimp_account import MailChimpAccountInfoSerializer, MailChimpSession
-from wingmonkey.settings import MAILCHIMP_ROOT
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 
 account_info_serializer = MailChimpAccountInfoSerializer()
 
@@ -30,7 +30,7 @@ def test_mailchimp_account_info():
     }
 
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/', text=dumps(expected))
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/', text=dumps(expected))
         account_info = account_info_serializer.read()
         for key in account_info.__dict__.keys():
             assert account_info.__dict__[key] == expected[key]

@@ -4,23 +4,26 @@ from collections import OrderedDict
 from hashlib import md5
 
 from wingmonkey.mailchimp_session import MailChimpSession
-from wingmonkey.settings import MAILCHIMP_EXPORT_ROOT, MAILCHIMP_API_KEY
+from wingmonkey.settings import DEFAULT_MAILCHIMP_EXPORT_ROOT, DEFAULT_MAILCHIMP_API_KEY
 from wingmonkey.enums import MemberStatus, MEMBER_EXPORT_KEYS_MAPPING
 from wingmonkey.members import Member
 from wingmonkey.merge_fields import MergeFieldCollectionSerializer
 
 
-def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since=None, hashed=None):
+def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since=None, hashed=None,
+                    api_key=DEFAULT_MAILCHIMP_API_KEY, api_endpoint=DEFAULT_MAILCHIMP_EXPORT_ROOT):
     """
     :param list_id: string: id of list to get members from
     :param status: string: status of members to get (subscribed, unscubscribed, cleaned, pending, transactional)
     :param segment: int: id of segment to get members from
     :param since: datetime: only return members whose data has changed since GMT timestamp
     :param hashed: string: instead of full list data, return a hashed list of email addresses, only 'sha256' supported
+    :param api_key: string: mailchimp api key
+    :param api_endpoint: string: mailchimp api root url
     :return: list of Member instances
     """
 
-    query_parameters = dict(apikey=MAILCHIMP_API_KEY, id=list_id, status=status)
+    query_parameters = dict(apikey=api_key, id=list_id, status=status)
 
     if segment:
         query_parameters.update(dict(segment=segment))
@@ -32,8 +35,8 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
     members = list()
     merge_fields = MergeFieldCollectionSerializer().read(list_id)
 
-    with MailChimpSession(api_endpoint=MAILCHIMP_EXPORT_ROOT).get('list/', query_parameters=query_parameters,
-                                                                  stream=True) as response:
+    with MailChimpSession(api_endpoint=api_endpoint).get('list/', query_parameters=query_parameters,
+                                                         stream=True) as response:
         lines = response.iter_lines()
         header = loads(next(lines))  # first line is a header
         for line in lines:

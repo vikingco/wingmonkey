@@ -3,7 +3,7 @@ from datetime import datetime
 from pytest import fixture
 from json import dumps
 
-from wingmonkey.settings import MAILCHIMP_ROOT
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.enums import MemberStatus
 from wingmonkey.batch_operations import batch_add_members, batch_update_members, batch_delete_members, \
     BatchOperationResourceSerializer, BatchOperationResource, BatchOperationResourceCollectionSerializer, \
@@ -68,7 +68,7 @@ def test_batch_add_members(expected_batch_operation_resource, expected_member):
 
     members = [Member(**expected_member)]
     with Mocker() as request_mock:
-        request_mock.post(f'{MAILCHIMP_ROOT}/batches',
+        request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/batches',
                           text=dumps(expected_batch_operation_resource), additional_matcher=match_request_text)
         result = batch_add_members('alistid1234', members)
         assert result.id == expected_batch_operation_resource['id']
@@ -85,7 +85,7 @@ def test_batch_update_members(expected_batch_operation_resource, expected_member
 
     members = [Member(**expected_member), Member(**expected_member2)]
     with Mocker() as request_mock:
-        request_mock.post(f'{MAILCHIMP_ROOT}/batches',
+        request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/batches',
                           text=dumps(expected_batch_operation_resource), additional_matcher=match_request_text)
         result = batch_update_members('alistid1234', members)
         assert result.id == expected_batch_operation_resource['id']
@@ -98,7 +98,7 @@ def test_batch_delete_members(expected_batch_operation_resource, expected_member
 
     members = [Member(**expected_member)]
     with Mocker() as request_mock:
-        request_mock.post(f'{MAILCHIMP_ROOT}/batches',
+        request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/batches',
                           text=dumps(expected_batch_operation_resource), additional_matcher=match_request_text)
         assert batch_delete_members('alistid1234', members)
 
@@ -131,7 +131,7 @@ def test_batch_operation_resource_serializer_read(expected_batch_operation_resou
     serializer = BatchOperationResourceSerializer()
     batch = BatchOperationResource(**expected_batch_operation_resource)
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/batches/{expected_batch_operation_resource["id"]}',
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/batches/{expected_batch_operation_resource["id"]}',
                          text=dumps(expected_batch_operation_resource))
         assert _compare_batch_operation_resource_result(serializer.read(batch_id=batch.id),
                                                         expected_batch_operation_resource)
@@ -141,7 +141,7 @@ def test_batch_operation_resource_serializer_delete(expected_batch_operation_res
     serializer = BatchOperationResourceSerializer()
     batch = BatchOperationResource(**expected_batch_operation_resource)
     with Mocker() as request_mock:
-        request_mock.delete(f'{MAILCHIMP_ROOT}/batches/{expected_batch_operation_resource["id"]}', text='')
+        request_mock.delete(f'{DEFAULT_MAILCHIMP_ROOT}/batches/{expected_batch_operation_resource["id"]}', text='')
         assert serializer.delete(batch.id)
 
 

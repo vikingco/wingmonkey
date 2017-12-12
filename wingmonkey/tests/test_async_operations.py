@@ -5,16 +5,31 @@ from json import dumps
 from pytest import fixture
 from aioresponses import aioresponses
 
-from wingmonkey.settings import MAILCHIMP_ROOT
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.factories import MemberFactory
 from wingmonkey.members import MemberSerializer
 from wingmonkey.async_operations import get_all_members_async, batch_update_members_async
+from wingmonkey.mailchimp_session import MailChimpSession
 
 
 @fixture()
 def expected_members():
     return {
         'members': [MemberSerializer().dumps(MemberFactory(list_id='ListyMcListface')).data for _ in range(100)],
+        'list_id': 'ListyMcListface',
+        'total_items': 100,
+        '_links': None
+    }
+
+
+@fixture()
+def expected_members_with_custom_session():
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+    session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
+    return {
+        'members': [MemberSerializer(session=session).dumps(MemberFactory(
+            list_id='ListyMcListface')).data for _ in range(100)],
         'list_id': 'ListyMcListface',
         'total_items': 100,
         '_links': None
@@ -45,7 +60,7 @@ def _create_chunks(members_dict, chunk_size):
     return chunks
 
 
-def test_get_all_members_async(expected_members):
+def test_get_all_members_async(caplog, expected_members):
     """
     The function we test here calls another async function. This is the expected behaviour:
     First a regular get request should be  made to get total member count which will be mocked with Mocker
@@ -53,19 +68,22 @@ def test_get_all_members_async(expected_members):
     """
 
     with Mocker() as request_mock, aioresponses() as async_request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members',
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members',
                          text=dumps({'total_items': 100}))
         # We will use max_count=10 which means 10 (100/10) async get tasks should be executed in this case
         chunks = _create_chunks(expected_members, chunk_size=10)
         for i in range(10):
-            async_request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members',
+            async_request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members',
                                    body=dumps(chunks[i]))
 
         response = get_all_members_async(list_id=expected_members["list_id"], max_count=10)
         assert response.members == expected_members['members']
 
+        # sanity check
+        assert f'using default api key setting' in caplog.text
 
-def test_batch_update_members_async(expected_members, expected_batch_operation_resource):
+
+def test_batch_update_members_async(caplog, expected_members, expected_batch_operation_resource):
     """
     Expected behaviour:
     The input list gets chopped up into chunks of 'members_per_call' length
@@ -74,10 +92,67 @@ def test_batch_update_members_async(expected_members, expected_batch_operation_r
     with aioresponses() as async_request_mock:
         # as the length of expected_members is 100 and we'll ask for 10 members per call there should be 10 requests
         for i in range(10):
-            async_request_mock.post(f'{MAILCHIMP_ROOT}/batches', payload=expected_batch_operation_resource)
+            async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/batches', payload=expected_batch_operation_resource)
 
         response = batch_update_members_async(list_id=expected_members['list_id'],
                                               member_list=expected_members['members'], members_per_call=10)
         assert len(response) == 10
         for i in range(10):
             assert response[i].__dict__ == expected_batch_operation_resource
+
+        # sanity check
+        assert f'using default api key setting' in caplog.text
+
+
+def test_get_all_members_async_with_custom_api_settings(caplog, expected_members_with_custom_session):
+    """
+    The function we test here calls another async function. This is the expected behaviour:
+    First a regular get request should be  made to get total member count which will be mocked with Mocker
+    Next we expect several aiohttp GET requests to get chunks of the member list which we will mock with aioresponses
+    We use custom settings so no warning should have been logged
+    """
+
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+
+    with Mocker() as request_mock, aioresponses() as async_request_mock:
+        request_mock.get(f'{api_endpoint}/lists/{expected_members_with_custom_session["list_id"]}/members',
+                         text=dumps({'total_items': 100}))
+        # We will use max_count=10 which means 10 (100/10) async get tasks should be executed in this case
+        chunks = _create_chunks(expected_members_with_custom_session, chunk_size=10)
+        for i in range(10):
+            async_request_mock.get(f'{api_endpoint}/lists/{expected_members_with_custom_session["list_id"]}/members',
+                                   body=dumps(chunks[i]))
+
+        response = get_all_members_async(list_id=expected_members_with_custom_session["list_id"], max_count=10,
+                                         api_endpoint=api_endpoint,
+                                         api_key=api_key)
+        assert response.members == expected_members_with_custom_session['members']
+        assert f'using default api key setting' not in caplog.text
+
+
+def test_batch_update_members_async_with_custom_api_settings(caplog, expected_members_with_custom_session,
+                                                             expected_batch_operation_resource):
+    """
+    Expected behaviour:
+    The input list gets chopped up into chunks of 'members_per_call' length
+    This should trigger list_length/members_per_call aiohttp POST requests that return batch operation resources
+    We use custom settings so no warning should have been logged
+    """
+
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+
+    with aioresponses() as async_request_mock:
+        # as the length of expected_members is 100 and we'll ask for 10 members per call there should be 10 requests
+        for i in range(10):
+            async_request_mock.post(f'{api_endpoint}/batches', payload=expected_batch_operation_resource)
+
+        response = batch_update_members_async(list_id=expected_members_with_custom_session['list_id'],
+                                              member_list=expected_members_with_custom_session['members'],
+                                              members_per_call=10, api_endpoint=api_endpoint, api_key=api_key)
+        assert len(response) == 10
+        for i in range(10):
+            assert response[i].__dict__ == expected_batch_operation_resource
+
+        assert f'using default api key setting' not in caplog.text

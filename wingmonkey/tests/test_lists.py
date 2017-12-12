@@ -5,7 +5,7 @@ from json import dumps
 
 from wingmonkey.lists import List, ListCollection, ListSerializer, ListCollectionSerializer, get_all_lists
 from wingmonkey.mailchimp_session import MailChimpSession
-from wingmonkey.settings import MAILCHIMP_ROOT
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.enums import VISIBILITY_PRIVATE
 
 
@@ -123,14 +123,14 @@ def compare_result(mailchimp_list, expected=None):
 def test_list_create(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.post(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_list))
+        request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists', text=dumps(expected_list))
         assert compare_result(list_serializer.create(mailchimp_list), expected_list)
 
 
 def test_list_read(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
         assert compare_result(list_serializer.read(mailchimp_list.id), expected_list)
 
 
@@ -138,8 +138,8 @@ def test_list_read_no_id(expected_list, expected_lists):
     mailchimp_list = List(**expected_list)
     mailchimp_list.id = None
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
         assert compare_result(list_serializer.read(), expected_list)
 
 
@@ -147,7 +147,7 @@ def test_list_read_no_id_no_lists(caplog):
     empty_list_collection = dict(lists=[])
     caplog.set_level(WARNING)
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(empty_list_collection))
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists', text=dumps(empty_list_collection))
         list_serializer.read()
         assert 'No lists found on server' in caplog.text
 
@@ -155,33 +155,50 @@ def test_list_read_no_id_no_lists(caplog):
 def test_list_update(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.patch(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
+        request_mock.patch(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text=dumps(expected_list))
         assert compare_result(list_serializer.update(mailchimp_list), expected_list)
 
 
 def test_list_delete(expected_list):
     mailchimp_list = List(**expected_list)
     with Mocker() as request_mock:
-        request_mock.delete(f'{MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text='')
+        request_mock.delete(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_list["id"]}', text='')
         assert list_serializer.delete(mailchimp_list)
 
 
 def test_lists_read(expected_lists):
 
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
         mailchimp_lists = list_collection_serializer.read()
         expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
         assert mailchimp_lists.total_items == expected_lists.total_items
 
 
-def test_get_all_lists(expected_lists):
+def test_get_all_lists(caplog, expected_lists):
     with Mocker() as request_mock:
-        request_mock.get(f'{MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
         mailchimp_lists = get_all_lists()
         expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
+
+        # sanity check
+        assert f'using default api key setting' in caplog.text
+
+
+def test_get_all_lists_custom_session(caplog, expected_lists):
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+    session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
+
+    with Mocker() as request_mock:
+        request_mock.get(f'{api_endpoint}/lists', text=dumps(expected_lists))
+        mailchimp_lists = get_all_lists(session=session)
+        expected_lists = ListCollection(**expected_lists)
+        assert mailchimp_lists.lists == expected_lists.lists
+
+        assert f'using default api key setting' not in caplog.text
 
 
 def test_list_collection_serializer():
