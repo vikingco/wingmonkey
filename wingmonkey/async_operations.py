@@ -169,13 +169,12 @@ async def _get_all_members_async(queue, list_id, count, max_chunks, total_member
 def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=None, retry=3, sleepy_time=5,
                           api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
 
-    session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
-
     # get list total member count
     while retry > 0:
         try:
-            total_member_count = MemberCollectionSerializer(session=session).read(list_id,
-                                                                                  query=extra_params).total_items
+            with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
+                total_member_count = MemberCollectionSerializer(session=session).read(list_id,
+                                                                                      query=extra_params).total_items
         except ClientException as e:
             logger.warning('getting member count for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1

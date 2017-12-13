@@ -167,6 +167,7 @@ class ListCollection(MailChimpData):
 def get_all_lists(session=None):
     """
     Get all lists existing on mailchimp account
+    :param session: MailChimpSession
     :return: ListCollection
     """
     list_collection_serializer = ListCollectionSerializer(session=session)

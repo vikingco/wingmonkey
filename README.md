@@ -7,11 +7,32 @@ mailchimp api v3 client
 mailchimp v3 api reference documentation: http://developer.mailchimp.com/documentation/mailchimp/reference/overview/
 
 
-### Some usage examples:
+### Settings
+
+To be able to make calls to mailchimp without having to initialize a custom MailChimpSession yourself make sure that at least following environment variable is set (or added to a .env file):
+
+```python
+DEFAULT_MAILCHIMP_API_KEY=<YOUR MAILCHIMP API KEY> 
+
+
+```
+
+For more advanced usage you can pass a custom MailChimpSession to the serializers and functions:
+
+```
+from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.lists import ListSerializer
+
+session = MailChimpSession(api_endpoint=<YOUR MAILCHIMP BASE URL>, api_key=<YOUR MAILCHIMP API KEY>)
+list_serializer = ListSerializer(session=session)
+
+```
+
+### Some more usage examples:
 
 #### getting list info
 
-```
+```python
 from wingmonkey.lists import ListSerializer
 
 list_serializer = ListSerializer()
@@ -25,7 +46,7 @@ unsubscribe_count = my_list.stats['unsubscribe_count']
 ```
 #### creating new member
 
-```
+```python
 from wingmonkey.members import Member, MemberSerializer
 
 email_address = 'monkeysee@monkey.do'
@@ -47,7 +68,7 @@ newly_added_member = member_serializer.create(list_id=list_id, instance=member_t
 
 #### get all members of a list
 
-```
+```python
 
 from wingmonkey.async_operations import get_all_members_async
 from datetime import datetime, timedelta
@@ -56,12 +77,12 @@ list_id = 'A_VALID_LIST_ID'
 ```
 
 * all members
-```
+```python
 all_list_members = get_all_members_async(list_id=list_id)
 ```
 
 * all members updated since specific date (take care to use the correct string format for datetime)
-```
+```python
 date_since = datetime.strftime(datetime.now() - timedelta(days=1), '%Y-%m-%dT%H:%M:%S')
 extra_params = {'since_last_changed': date_since }
 all_updated_members_since_yesterday = get_all_members_async(list_id=list_id, extra_params=extra_params)
@@ -72,7 +93,7 @@ all_updated_members_since_yesterday = get_all_members_async(list_id=list_id, ext
 http://developer.mailchimp.com/documentation/mailchimp/reference/batches/#create-post_batches
 http://developer.mailchimp.com/documentation/mailchimp/reference/lists/#create-post_lists_list_id
 
-```
+```python
 from wingmonkey.async_operations import batch_update_members_async
 list_id = 'A_VALID_LIST_ID'
 member_list = [A_LIST_OF_MEMBER_INSTANCES]
