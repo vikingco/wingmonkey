@@ -23,13 +23,15 @@ class BatchOperationResourceSerializer(Schema):
     def __init__(self, session=None, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        if not session:
+
+        if session is None and self.context.get('session', None) is None:
             session = MailChimpSession()
         self.session = session
 
     def read(self, batch_id):
         response = self.session.get(f'batches/{batch_id}')
-        return BatchOperationResource(**BatchOperationResourceSerializer().load(response.json()).data)
+        return BatchOperationResource(**BatchOperationResourceSerializer(
+            session=self.session).load(response.json()).data)
 
     def delete(self, batch_id):
         if self.session.delete(f'batches/{batch_id}'):
@@ -64,8 +66,10 @@ class BatchOperationResourceCollectionSerializer(Schema):
         if not session:
             session = MailChimpSession()
         self.session = session
+        self.context = {'session': session}
 
     def read(self, chunk_size=250):
+
         # get count total items
         response = self.session.get('batches', query_parameters=dict(fields=['total_items']))
         total_items = response.json()['total_items']
@@ -73,10 +77,12 @@ class BatchOperationResourceCollectionSerializer(Schema):
         # get all batches
         response = self.session.get(
                 'batches', query_parameters=dict(count=chunk_size, offset=0)).json()
+
         for i in range(ceil(total_items/chunk_size)-1):
             response['batches'].extend(self.session.get(
                 'batches', query_parameters=dict(count=chunk_size, offset=chunk_size * i)).json()['batches']
             )
+
         return BatchOperationResourceCollection(**self.load(response).data)
 
 
@@ -123,10 +129,10 @@ class BatchOperationCollection(MailChimpData):
         self.operations = operations
 
 
-def _batch_members_operation(list_id, members_list, method):
+def _batch_members_operation(list_id, members_list, method, session=None):
     method = method
-    member_serializer = MemberSerializer()
-    batch_operation_resource_serializer = BatchOperationResourceSerializer()
+    member_serializer = MemberSerializer(session=session)
+    batch_operation_resource_serializer = BatchOperationResourceSerializer(session=session)
     batch_operations_serializer = BatchOperationCollectionSerializer()
     operations = list()
 
@@ -157,31 +163,34 @@ def _batch_members_operation(list_id, members_list, method):
     return BatchOperationResource(**batch_operation_resource_serializer.load(response.json()).data)
 
 
-def batch_add_members(list_id, members_list):
+def batch_add_members(list_id, members_list, session=None):
     """
     :param list_id: id of list to add members to
     :param members_list: list of Member instances to be added
+    :param session: MailChimpSession
     :return: batch operation resource
     """
-    return _batch_members_operation(list_id, members_list, HttpMethods.POST)
+    return _batch_members_operation(list_id, members_list, HttpMethods.POST, session=session)
 
 
-def batch_update_members(list_id, members_list):
+def batch_update_members(list_id, members_list, session=None):
     """
     :param list_id: id of list of members to update in
     :param members_list: list of Member instances to be updated
+    :param session: MailChimpSession
     :return: batch operation resource
     """
 
-    return _batch_members_operation(list_id, members_list, HttpMethods.PATCH)
+    return _batch_members_operation(list_id, members_list, HttpMethods.PATCH, session=session)
 
 
-def batch_delete_members(list_id, members_list):
+def batch_delete_members(list_id, members_list, session=None):
     """
 
     :param list_id: id of list of members to delete from
     :param members_list: list of Member instances to be deleted
+    :param session: MailChimpSession
     :return: batch operation resource
     """
 
-    return _batch_members_operation(list_id, members_list, HttpMethods.DELETE)
+    return _batch_members_operation(list_id, members_list, HttpMethods.DELETE, session=session)

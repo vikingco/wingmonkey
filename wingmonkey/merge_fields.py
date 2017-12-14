@@ -24,7 +24,8 @@ class MergeFieldSerializer(Schema):
     def __init__(self, session=None, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        if not session:
+
+        if session is None and self.context.get('session', None) is None:
             session = MailChimpSession()
         self.session = session
 
@@ -112,6 +113,7 @@ class MergeFieldCollectionSerializer(Schema):
         if not session:
             session = MailChimpSession()
         self.session = session
+        self.context = {'session': session}
 
     def read(self, list_id):
         """
@@ -154,7 +156,7 @@ def get_all_merge_fields(list_ids=None, session=None):
     """
     if not list_ids:
         # get all lists
-        list_collection = get_all_lists()
+        list_collection = get_all_lists(session=session)
         list_ids = [l['id'] for l in list_collection.lists]
     else:
         list_ids = list_ids

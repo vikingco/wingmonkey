@@ -20,7 +20,8 @@ class SegmentSerializer(Schema):
     def __init__(self, session=None, *args, **kwargs):
 
         super().__init__(*args, **kwargs)
-        if not session:
+
+        if session is None and self.context.get('session', None) is None:
             session = MailChimpSession()
         self.session = session
 
@@ -104,6 +105,7 @@ class SegmentCollectionSerializer(Schema):
         if not session:
             session = MailChimpSession()
         self.session = session
+        self.context = {'session': session}
 
     def read(self, list_id):
         """
