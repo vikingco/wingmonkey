@@ -1,7 +1,8 @@
 from requests_mock import Mocker
 from json import dumps
 
-from wingmonkey.mailchimp_account import MailChimpAccountInfoSerializer, MailChimpSession
+from wingmonkey.mailchimp_account import MailChimpAccountInfoSerializer
+from wingmonkey.mailchimp_session import MailChimpSession
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 
 account_info_serializer = MailChimpAccountInfoSerializer()

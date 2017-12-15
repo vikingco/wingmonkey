@@ -1,11 +1,11 @@
-from marshmallow import Schema, fields
+from marshmallow import fields
 
 from wingmonkey.enums import SegmentFieldTypes
-from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.mailchimp_session import MailChimpSessionSchema
 from wingmonkey.mailchimp_base import MailChimpData
 
 
-class SegmentSerializer(Schema):
+class SegmentSerializer(MailChimpSessionSchema):
 
     id = fields.Int()
     name = fields.Str()
@@ -16,14 +16,6 @@ class SegmentSerializer(Schema):
     options = fields.Dict()
     list_id = fields.Str()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        if session is None and self.context.get('session', None) is None:
-            session = MailChimpSession()
-        self.session = session
 
     def create(self, list_id, segment_instance):
         """
@@ -92,20 +84,12 @@ class Segment(MailChimpData):
         self._links = _links
 
 
-class SegmentCollectionSerializer(Schema):
+class SegmentCollectionSerializer(MailChimpSessionSchema):
 
     segments = fields.List(cls_or_instance=fields.Nested(SegmentSerializer))
     list_id = fields.Str()
     total_items = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
-        self.context = {'session': session}
 
     def read(self, list_id):
         """

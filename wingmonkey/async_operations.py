@@ -95,7 +95,7 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
                 operations.append(BatchOperation(method='POST', path=path,
                                                  body=MemberBatchRequestSerializer(session=session).dumps(batch).data))
 
-            batch_operation_collection_serializer = BatchOperationCollectionSerializer()
+            batch_operation_collection_serializer = BatchOperationCollectionSerializer(session=session)
 
             batch_operations = BatchOperationCollection(operations=operations)
 

@@ -1,10 +1,10 @@
-from marshmallow import Schema, fields
+from marshmallow import fields
 
 from wingmonkey.mailchimp_base import MailChimpData
-from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.mailchimp_session import MailChimpSessionSchema
 
 
-class MailChimpAccountInfoSerializer(Schema):
+class MailChimpAccountInfoSerializer(MailChimpSessionSchema):
     account_id = fields.Str()
     login_id = fields.Str()
     account_name = fields.Str()
@@ -15,13 +15,6 @@ class MailChimpAccountInfoSerializer(Schema):
     role = fields.Str()
     contact = fields.Dict()
     total_subscribers = fields.Int()
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
 
     def read(self):
         response = self.session.get()

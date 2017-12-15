@@ -1,12 +1,12 @@
-from marshmallow import Schema, fields
+from marshmallow import fields
 
 from wingmonkey.enums import MergeFieldTypes
-from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.mailchimp_session import MailChimpSessionSchema
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.lists import get_all_lists
 
 
-class MergeFieldSerializer(Schema):
+class MergeFieldSerializer(MailChimpSessionSchema):
 
     merge_id = fields.Int()
     tag = fields.Str()
@@ -20,14 +20,6 @@ class MergeFieldSerializer(Schema):
     help_text = fields.Str()
     list_id = fields.Str()
     _links = fields.Dict()
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        if session is None and self.context.get('session', None) is None:
-            session = MailChimpSession()
-        self.session = session
 
     def create(self, list_id, merge_field_instance):
         """
@@ -100,20 +92,12 @@ class MergeField(MailChimpData):
         self._links = _links
 
 
-class MergeFieldCollectionSerializer(Schema):
+class MergeFieldCollectionSerializer(MailChimpSessionSchema):
 
     merge_fields = fields.List(cls_or_instance=fields.Nested(MergeFieldSerializer))
     list_id = fields.Str()
     total_items = fields.Int()
     _links = fields.Dict()
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
-        self.context = {'session': session}
 
     def read(self, list_id):
         """

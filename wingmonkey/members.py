@@ -1,16 +1,16 @@
 from hashlib import md5
 
 from logging import getLogger
-from marshmallow import Schema, fields
+from marshmallow import fields
 
-from wingmonkey.mailchimp_session import MailChimpSession, ClientException
+from wingmonkey.mailchimp_session import ClientException, MailChimpSessionSchema
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.enums import MemberStatus
 
 logger = getLogger(__name__)
 
 
-class MemberSerializer(Schema):
+class MemberSerializer(MailChimpSessionSchema):
     """
     class representing member schema in mailchimp
     inherits from marshmallow Schema https://marshmallow.readthedocs.io/en/latest/quickstart.html#declaring-schemas
@@ -40,14 +40,6 @@ class MemberSerializer(Schema):
     last_note = fields.Dict()
     list_id = fields.Str()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        if session is None and self.context.get('session', None) is None:
-            session = MailChimpSession()
-        self.session = session
 
     def create(self, list_id, instance):
         """
@@ -147,20 +139,12 @@ class Member(MailChimpData):
         self._links = _links
 
 
-class MemberCollectionSerializer(Schema):
+class MemberCollectionSerializer(MailChimpSessionSchema):
 
     members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
     list_id = fields.Str()
     total_items = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
-        self.context = {'session': session}
 
     def read(self, list_id, query=None):
         """
@@ -182,27 +166,18 @@ class MemberCollection(MailChimpData):
         self._links = _links
 
 
-class MemberBatchRequestSerializer(Schema):
+class MemberBatchRequestSerializer(MailChimpSessionSchema):
 
-    members = fields.List(cls_or_instance=fields.Nested(MemberSerializer,
-                                                        only=('email_address', 'status',
-                                                              'merge_fields', 'language'),
-                                                        ))
+    members = fields.List(cls_or_instance=fields.Nested(MemberSerializer, only=('email_address', 'status',
+                                                                                'merge_fields', 'language')))
     update_existing = fields.Boolean()
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
-        self.context = {'session': session}
 
     def create(self, list_id, member_batch_request_instance):
 
         response = self.session.post(f'lists/{list_id}', json=self.dumps(member_batch_request_instance).data)
         if response:
-            return MemberBatchResponse(**MemberBatchResponseSerializer(session=self.session).load(response.json()).data)
+            return MemberBatchResponse(
+                **MemberBatchResponseSerializer(session=self.session).load(response.json()).data)
 
 
 class MemberBatchRequest(MailChimpData):
@@ -221,7 +196,7 @@ class MemberBatchRequest(MailChimpData):
         self.update_existing = update_existing
 
 
-class MemberBatchResponseSerializer(Schema):
+class MemberBatchResponseSerializer(MailChimpSessionSchema):
 
     new_members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
     updated_members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
@@ -230,14 +205,6 @@ class MemberBatchResponseSerializer(Schema):
     total_updated = fields.Int()
     error_count = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
-        self.context = {'session': session}
 
 
 class MemberBatchResponse(MailChimpData):

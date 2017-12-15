@@ -1,12 +1,9 @@
 from logging import getLogger
 from asyncio import get_event_loop, TimeoutError, new_event_loop, set_event_loop
-
 from requests import Session, exceptions
 from requests.auth import HTTPBasicAuth
-
 from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
-
 from marshmallow import Schema
 
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS

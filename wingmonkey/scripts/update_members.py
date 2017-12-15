@@ -60,7 +60,7 @@ def member_batch_update(list_id, member_list, session=None):
         operations.append(BatchOperation(method='POST', path=path,
                                          body=member_batch_request_serializer.dumps(batch).data))
 
-    batch_operation_serializer = BatchOperationSerializer()
+    batch_operation_serializer = BatchOperationSerializer(session=session)
     batch_operation_resource_serializer = BatchOperationResourceSerializer(session=session)
 
     batch_operations = BatchOperationCollection(operations=operations)

@@ -1,14 +1,14 @@
 from uuid import uuid4
-from marshmallow import Schema, fields
+from marshmallow import fields
 from math import ceil
 
 from wingmonkey.enums import HttpMethods
-from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.mailchimp_session import MailChimpSession, MailChimpSessionSchema
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.members import MemberSerializer
 
 
-class BatchOperationResourceSerializer(Schema):
+class BatchOperationResourceSerializer(MailChimpSessionSchema):
 
     id = fields.Str()
     status = fields.Str()
@@ -20,18 +20,10 @@ class BatchOperationResourceSerializer(Schema):
     response_body_url = fields.Str()
     _links = fields.List(cls_or_instance=fields.Dict())
 
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        if session is None and self.context.get('session', None) is None:
-            session = MailChimpSession()
-        self.session = session
-
     def read(self, batch_id):
         response = self.session.get(f'batches/{batch_id}')
-        return BatchOperationResource(**BatchOperationResourceSerializer(
-            session=self.session).load(response.json()).data)
+        return BatchOperationResource(
+            **BatchOperationResourceSerializer(session=self.session).load(response.json()).data)
 
     def delete(self, batch_id):
         if self.session.delete(f'batches/{batch_id}'):
@@ -54,19 +46,11 @@ class BatchOperationResource(MailChimpData):
         self._links = _links
 
 
-class BatchOperationResourceCollectionSerializer(Schema):
+class BatchOperationResourceCollectionSerializer(MailChimpSessionSchema):
 
     batches = fields.List(cls_or_instance=fields.Nested(BatchOperationResourceSerializer))
     total_items = fields.Int()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
-        self.context = {'session': session}
 
     def read(self, chunk_size=250):
 
@@ -95,7 +79,7 @@ class BatchOperationResourceCollection(MailChimpData):
         self._links = _links
 
 
-class BatchOperationSerializer(Schema):
+class BatchOperationSerializer(MailChimpSessionSchema):
 
     method = fields.Str()
     path = fields.Str()
@@ -117,7 +101,7 @@ class BatchOperation(MailChimpData):
         self.body = body
 
 
-class BatchOperationCollectionSerializer(Schema):
+class BatchOperationCollectionSerializer(MailChimpSessionSchema):
 
     operations = fields.List(cls_or_instance=fields.Nested(BatchOperationSerializer))
 
@@ -133,7 +117,7 @@ def _batch_members_operation(list_id, members_list, method, session=None):
     method = method
     member_serializer = MemberSerializer(session=session)
     batch_operation_resource_serializer = BatchOperationResourceSerializer(session=session)
-    batch_operations_serializer = BatchOperationCollectionSerializer()
+    batch_operations_serializer = BatchOperationCollectionSerializer(session=session)
     operations = list()
 
     if method == HttpMethods.PATCH:

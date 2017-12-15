@@ -4,14 +4,15 @@ from collections import OrderedDict
 from hashlib import md5
 
 from wingmonkey.mailchimp_session import MailChimpSession
-from wingmonkey.settings import DEFAULT_MAILCHIMP_EXPORT_ROOT, DEFAULT_MAILCHIMP_API_KEY
+from wingmonkey.settings import DEFAULT_MAILCHIMP_EXPORT_ROOT, DEFAULT_MAILCHIMP_API_KEY, DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.enums import MemberStatus, MEMBER_EXPORT_KEYS_MAPPING
 from wingmonkey.members import Member
 from wingmonkey.merge_fields import MergeFieldCollectionSerializer
 
 
 def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since=None, hashed=None,
-                    api_key=DEFAULT_MAILCHIMP_API_KEY, api_endpoint=DEFAULT_MAILCHIMP_EXPORT_ROOT):
+                    api_key=DEFAULT_MAILCHIMP_API_KEY, api_endpoint=DEFAULT_MAILCHIMP_ROOT,
+                    api_export_root=DEFAULT_MAILCHIMP_EXPORT_ROOT):
     """
     :param list_id: string: id of list to get members from
     :param status: string: status of members to get (subscribed, unscubscribed, cleaned, pending, transactional)
@@ -19,7 +20,8 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
     :param since: datetime: only return members whose data has changed since GMT timestamp
     :param hashed: string: instead of full list data, return a hashed list of email addresses, only 'sha256' supported
     :param api_key: string: mailchimp api key
-    :param api_endpoint: string: mailchimp api root url
+    :param api_endpoint: string mailchimp regular api root url
+    :param api_export_root: string: mailchimp api export root url
     :return: list of Member instances
     """
 
@@ -33,10 +35,12 @@ def get_all_members(list_id, status=MemberStatus.SUBSCRIBED, segment=None, since
         query_parameters.update(dict(hashed='sha256'))
 
     members = list()
-    merge_fields = MergeFieldCollectionSerializer().read(list_id)
+    with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
+        merge_fields = MergeFieldCollectionSerializer(session=session).read(list_id)
 
-    with MailChimpSession(api_endpoint=api_endpoint).get('list/', query_parameters=query_parameters,
-                                                         stream=True) as response:
+    with MailChimpSession(api_endpoint=api_export_root,
+                          api_key=api_key).get('list/', query_parameters=query_parameters,
+                                               stream=True) as response:
         lines = response.iter_lines()
         header = loads(next(lines))  # first line is a header
         for line in lines:

@@ -1,7 +1,7 @@
 from logging import getLogger
-from marshmallow import Schema, fields
+from marshmallow import fields
 
-from wingmonkey.mailchimp_session import MailChimpSession
+from wingmonkey.mailchimp_session import MailChimpSessionSchema
 from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.enums import VISIBILITY_PRIVATE, DEFAULT_RECORD_COUNT
 
@@ -10,7 +10,7 @@ from wingmonkey.settings import DEFAULT_PERMISSION_REMINDER, CAMPAIGN_DEFAULTS, 
 logger = getLogger(__name__)
 
 
-class ListSerializer(Schema):
+class ListSerializer(MailChimpSessionSchema):
     """
     class representing mailing list schema in mailchimp
     inherits from marshmallow Schema https://marshmallow.readthedocs.io/en/latest/quickstart.html#declaring-schemas
@@ -35,14 +35,6 @@ class ListSerializer(Schema):
     modules = fields.Str()
     stats = fields.Dict()
     _links = fields.List(cls_or_instance=fields.Dict())
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-
-        if session is None and self.context.get('session', None) is None:
-            session = MailChimpSession()
-        self.session = session
 
     def create(self, instance):
         """
@@ -135,17 +127,9 @@ class List(MailChimpData):
         self._links = _links
 
 
-class ListCollectionSerializer(Schema):
+class ListCollectionSerializer(MailChimpSessionSchema):
     lists = fields.List(cls_or_instance=fields.Nested(ListSerializer))
     total_items = fields.Int()
-
-    def __init__(self, session=None, *args, **kwargs):
-
-        super().__init__(*args, **kwargs)
-        if not session:
-            session = MailChimpSession()
-        self.session = session
-        self.context = {'session': session}
 
     def read(self, count=DEFAULT_RECORD_COUNT, extra_parameters=None):
         query_parameters = dict(count=count)
