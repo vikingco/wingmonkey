@@ -7,6 +7,8 @@ from requests.auth import HTTPBasicAuth
 from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
 
+from marshmallow import Schema
+
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS
 
 logger = getLogger(__name__)
@@ -145,3 +147,20 @@ class ClientException(Exception):
 
     def __repr__(self):
         return f'{self.http_code}: {self.response_body}'
+
+
+class MailChimpSessionSchema(Schema):
+    """
+    Adds MailChimpSession to Schema
+    When used as a nested object of another Schema it checks if a session already exists
+    This to prevent initializing unneeded sessions
+    """
+
+    def __init__(self, session=None, *args, **kwargs):
+
+        super().__init__(*args, **kwargs)
+
+        if session is None and self.context.get('session', None) is None:
+            session = MailChimpSession()
+        self.session = session
+        self.context = {'session': session}

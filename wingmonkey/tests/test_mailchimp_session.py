@@ -3,9 +3,10 @@ from requests.exceptions import Timeout, ConnectionError
 from json import dumps
 from pytest import raises, fixture
 from aioresponses import aioresponses
+from marshmallow import fields
 
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY
-from wingmonkey.mailchimp_session import MailChimpSession, ClientException
+from wingmonkey.mailchimp_session import MailChimpSession, ClientException, MailChimpSessionSchema
 
 
 @fixture
@@ -184,4 +185,37 @@ def test_mailchimpsession_no_warning_if_using_custom_settings(caplog):
 
     assert session.api_endpoint == api_endpoint
     assert session.api_key == api_key
+    assert f'using default api key setting' not in caplog.text
+
+
+def test_mailchimp_session_schema_default(caplog):
+
+    serializer = MailChimpSessionSchema()
+    assert serializer.session.api_key == DEFAULT_MAILCHIMP_API_KEY
+    assert f'using default api key setting' in caplog.text
+
+
+def test_mailchimp_session_schema_custom_session(caplog):
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+    session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
+    serializer = MailChimpSessionSchema(session=session)
+
+    assert serializer.session.api_endpoint == api_endpoint
+    assert serializer.session.api_key == api_key
+    assert f'using default api key setting' not in caplog.text
+
+
+def test_mailchimp_session_schema_nested(caplog):
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+    session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
+
+    class ParentSerializer(MailChimpSessionSchema):
+        nested_serializer = fields.Nested(MailChimpSessionSchema)
+
+    parent_serializer = ParentSerializer(session=session)
+    json = dumps(dict(nested_serializer=''))
+    parent_serializer.load(json)
+
     assert f'using default api key setting' not in caplog.text
