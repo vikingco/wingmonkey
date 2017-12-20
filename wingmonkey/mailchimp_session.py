@@ -34,7 +34,7 @@ class MailChimpSession(object):
             set_event_loop(loop)
             self.loop = loop
 
-        connector = TCPConnector(loop=self.loop, limit=MAILCHIMP_MAX_CONNECTIONS, verify_ssl=False)
+        connector = TCPConnector(loop=self.loop, verify_ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
         self.async_session = ClientSession(connector=connector)
 
     def __del__(self):
@@ -83,6 +83,9 @@ class MailChimpSession(object):
     def patch(self, url=None, json=None, query_parameters=None):
         return self._request(self.session.patch, url=url, json=json, query_parameters=query_parameters)
 
+    def put(self, url=None, json=None, query_parameters=None):
+        return self._request(self.session.put, url=url, json=json, query_parameters=query_parameters)
+
     def delete(self, url=None, json=None, query_parameters=None):
         return self._request(self.session.delete, url=url, json=json, query_parameters=query_parameters)
 
@@ -105,7 +108,6 @@ class MailChimpSession(object):
             logger.debug('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
             response = await method(f'{self.api_endpoint}/{url}', headers={'Accept': 'application/json'},
                                     data=json, params=query_parameters, auth=auth)
-
             response.raise_for_status()
             return response
         except web_exceptions.HTTPError:
@@ -120,14 +122,16 @@ class MailChimpSession(object):
             raise ClientException(0, 'Asyncio Timeout Error')
 
     async def async_get(self, url=None, json=None, query_parameters=None):
-        response = await self._async_request(self.async_session.get, url, json, query_parameters)
-        return await response.json()
+        return await self._async_request(self.async_session.get, url, json, query_parameters)
 
     async def async_post(self, url=None, json=None, query_parameters=None):
         return await self._async_request(self.async_session.post, url, json, query_parameters)
 
     async def async_patch(self, url=None, json=None, query_parameters=None):
         return await self._async_request(self.async_session.patch, url, json, query_parameters)
+
+    async def async_put(self, url=None, json=None, query_parameters=None):
+        return await self._async_request(self.async_session.put, url, json, query_parameters)
 
     async def async_delete(self, url=None, json=None, query_parameters=None):
         return await self._async_request(self.async_session.delete, url, json, query_parameters)
@@ -138,12 +142,12 @@ class ClientException(Exception):
     Exception indicating an unexpected http response was received. (not 2xx and not 404)
     """
     def __init__(self, http_code, response_body):
-        self.http_code = http_code
+        self.status = http_code
         self.response_body = response_body
         logger.error(response_body)
 
     def __repr__(self):
-        return f'{self.http_code}: {self.response_body}'
+        return f'{self.status}: {self.response_body}'
 
 
 class MailChimpSessionSchema(Schema):

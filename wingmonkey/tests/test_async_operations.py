@@ -1,14 +1,14 @@
 from copy import deepcopy
 from datetime import datetime
 from requests_mock import Mocker
-from json import dumps
+from json import dumps, loads
 from pytest import fixture
 from aioresponses import aioresponses
 
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.factories import MemberFactory
 from wingmonkey.members import MemberSerializer
-from wingmonkey.async_operations import get_all_members_async, batch_update_members_async
+from wingmonkey.async_operations import get_all_members_async, batch_update_members_async, update_members_async
 from wingmonkey.mailchimp_session import MailChimpSession
 
 
@@ -20,6 +20,24 @@ def expected_members():
         'total_items': 100,
         '_links': None
     }
+
+
+@fixture()
+def expected_member_batches():
+    members = [MemberFactory(list_id='ListyMcListface') for _ in range(1000)]
+
+    batch1 = {
+        'members': [loads(MemberSerializer(only=('email_address', 'status', 'merge_fields', 'language'))
+                    .dumps(member).data) for member in members[0:500]],
+        'update_existing': True
+    }
+    batch2 = {
+        'members': [loads(MemberSerializer(only=('email_address', 'status', 'merge_fields', 'language'))
+                    .dumps(member).data) for member in members[500:1000]],
+        'update_existing': True
+
+    }
+    return batch1, batch2, members
 
 
 @fixture()
@@ -174,3 +192,133 @@ def test_batch_update_members_async_with_custom_api_settings(caplog, expected_me
             assert response[i].__dict__ == expected_batch_operation_resource
 
         assert f'using default api key setting' not in caplog.text
+
+
+def test_update_members_async(caplog, expected_member_batches):
+
+    with aioresponses() as async_request_mock:
+        # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
+        batch1, batch2, member_list = expected_member_batches
+        list_id = member_list[0].list_id
+
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch2)
+
+        response = update_members_async(list_id=list_id,
+                                        member_list=member_list)
+
+        # check if correct requests have been made
+        request1_data = async_request_mock.requests[(f'POST',
+                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][0][1]['data']
+        request2_data = async_request_mock.requests[(f'POST',
+                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
+
+        assert loads(request1_data) == batch1
+        assert loads(request2_data) == batch2
+
+        # check responses
+        assert response[0] == batch1
+        assert response[1] == batch2
+
+        assert f'using default api key setting' in caplog.text
+
+
+def test_update_members_async_with_custom_api_settings(caplog, expected_member_batches):
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+
+    with aioresponses() as async_request_mock:
+        # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
+        batch1, batch2, member_list = expected_member_batches
+        list_id = member_list[0].list_id
+
+        async_request_mock.post(f'{api_endpoint}/lists/{list_id}', payload=batch1)
+        async_request_mock.post(f'{api_endpoint}/lists/{list_id}', payload=batch2)
+
+        response = update_members_async(list_id=list_id,
+                                        member_list=member_list,
+                                        api_endpoint=api_endpoint, api_key=api_key)
+
+        # check if correct requests have been made
+        request1_data = async_request_mock.requests[(f'POST',
+                                                     f'{api_endpoint}/lists/{list_id}')][0][1]['data']
+        request2_data = async_request_mock.requests[(f'POST',
+                                                     f'{api_endpoint}/lists/{list_id}')][1][1]['data']
+
+        assert loads(request1_data) == batch1
+        assert loads(request2_data) == batch2
+
+        # check responses
+        assert response[0] == batch1
+        assert response[1] == batch2
+
+        assert f'using default api key setting' not in caplog.text
+
+
+def test_update_members_async_status_only(caplog, expected_member_batches):
+
+    with aioresponses() as async_request_mock:
+        # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
+        batch1, batch2, member_list = expected_member_batches
+        list_id = member_list[0].list_id
+
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch2)
+
+        response = update_members_async(list_id=list_id,
+                                        member_list=member_list,
+                                        status_only=True)
+
+        # check if correct requests have been made
+        request1_data = async_request_mock.requests[(f'POST',
+                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][0][1]['data']
+        request2_data = async_request_mock.requests[(f'POST',
+                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
+
+        assert loads(request1_data) == batch1
+        assert loads(request2_data) == batch2
+
+        # check responses
+        assert response[0] == 200
+        assert response[1] == 200
+
+        assert f'using default api key setting' in caplog.text
+
+
+def test_update_members_async_status_only_failed_response(caplog, expected_member_batches):
+
+    with aioresponses() as async_request_mock:
+        # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
+        batch1, batch2, member_list = expected_member_batches
+        list_id = member_list[0].list_id
+
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', status=400)
+
+        response = update_members_async(list_id=list_id,
+                                        member_list=member_list,
+                                        status_only=True,
+                                        retry=1)
+
+        assert response[0] == 200
+        assert response[1] == 400
+
+        assert f'using default api key setting' in caplog.text
+
+
+def test_update_members_async_failed_response_only_return_status(caplog):
+
+    with aioresponses() as async_request_mock:
+        list_id = 'hailthefail'
+        member_list = [MemberFactory(list_id=list_id) for _ in range(10)]
+
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', status=400)
+
+        response = update_members_async(list_id=list_id,
+                                        member_list=member_list,
+                                        status_only=False,
+                                        retry=1)
+
+        assert response[0] == 400
+
+        assert f'using default api key setting' in caplog.text

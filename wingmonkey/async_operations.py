@@ -1,4 +1,5 @@
 from asyncio import get_event_loop, gather, Queue, sleep as async_sleep
+from aiohttp import ClientResponse
 from math import ceil
 from time import sleep
 from uuid import uuid4
@@ -8,8 +9,8 @@ from logging import getLogger
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY
 from wingmonkey.enums import MAX_MEMBERS_PER_BATCH
 from wingmonkey.mailchimp_session import MailChimpSession, ClientException
-from wingmonkey.members import (MemberBatchRequest, MemberBatchRequestSerializer, MemberCollection,
-                                MemberCollectionSerializer)
+from wingmonkey.members import (MemberCollection, MemberCollectionSerializer,
+                                MemberBatchRequest, MemberBatchRequestSerializer)
 from wingmonkey.batch_operations import (BatchOperationResource, BatchOperation,
                                          BatchOperationCollectionSerializer, BatchOperationCollection)
 
@@ -47,18 +48,81 @@ async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=10
             if not retry:
                 # we retried and failed, log as error
                 logger.error('task %s failed (%s, params: %s %s). Error: %s ', task_id, func, args, kwargs, e)
-                return
+                return e
             await async_sleep(sleepy_time)
 
 
-async def _get_chunk(queue, results):
+async def _get_response(queue, results, json=False, status_only=False):
     """
     :param queue: asyncio.Queue
     :param results: list
+    :param json: Boolean: Return response json instead of whole instance
+    :param status_only: Boolean: Only return response status instead of whole instance
     """
     while not queue.empty():
         task = await queue.get()
-        results.append(await _async_task(**task))
+        response = await _async_task(**task)
+
+        if status_only or type(response) is not ClientResponse:
+            results.append(response.status)
+        elif json:
+            results.append(await response.json())
+        else:
+            results.append(response)
+
+        if type(response) is ClientResponse:
+            response.close()
+
+
+async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=5,
+                                api_endpoint=None, api_key=None):
+    tasks = []
+    results = []
+
+    with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
+
+        member_batch_request_serializer = MemberBatchRequestSerializer(session=session)
+
+        path = f'lists/{list_id}'
+
+        for j in range(0, len(member_list), MAX_MEMBERS_PER_BATCH):
+            batch_request = MemberBatchRequest(members=member_list[j:j + MAX_MEMBERS_PER_BATCH],
+                                               update_existing=True)
+
+            queue.put_nowait(dict(func=session.async_post,
+                                  kwargs=(dict(url=f'{path}',
+                                               json=member_batch_request_serializer.dumps(batch_request).data)),
+                                  retry=retry))
+
+        for chunk in range(0, max_chunks):
+            tasks.append(_get_response(queue, results, json=True, status_only=status_only))
+
+        await gather(*tasks)
+        return results
+
+
+def update_members_async(list_id, member_list, status_only=False, max_chunks=10, retry=5, sleepy_time=5,
+                         api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
+
+    loop = get_event_loop()
+    queue = Queue()
+
+    while retry > 0:
+        try:
+            responses = loop.run_until_complete(_update_members_async(
+                queue=queue, list_id=list_id, member_list=member_list, status_only=status_only, max_chunks=max_chunks,
+                retry=retry, api_endpoint=api_endpoint, api_key=api_key))
+
+            return responses
+        except ClientException as e:
+            logger.warning('update_members_async for list %s failed. Error: %s , %i retries left',
+                           list_id, e, retry)
+            retry -= 1
+            if not retry:
+                # we retried and failed, log as error
+                logger.error('update_members_async for list %s failed. Error: %s', list_id, e)
+                return
+            sleep(sleepy_time)
 
 
 async def _batch_update_members_async(queue, list_id, member_list, max_chunks, batch_operation_collection_size=25000,
@@ -106,7 +170,7 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
                                   retry=retry))
 
         for chunk in range(0, max_chunks):
-            tasks.append(_get_chunk(queue, results))
+            tasks.append(_get_response(queue, results, json=True))
 
         await gather(*tasks)
         return results
@@ -124,13 +188,10 @@ def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_c
                 queue=queue, list_id=list_id, member_list=member_list, max_chunks=max_chunks,
                 batch_operation_collection_size=members_per_call, retry=retry,
                 api_endpoint=api_endpoint, api_key=api_key))
-            json_responses = []
-            for response in responses:
-                json_responses.append(loop.run_until_complete(response.json()))
 
             batch_operation_resources = []
-            for json_response in json_responses:
-                batch_operation_resources.append(BatchOperationResource(**json_response))
+            for response in responses:
+                batch_operation_resources.append(BatchOperationResource(**response))
 
             return batch_operation_resources
         except ClientException as e:
@@ -160,7 +221,7 @@ async def _get_all_members_async(queue, list_id, count, max_chunks, total_member
                                   retry=retry))
 
         for chunk in range(0, max_chunks):
-            tasks.append(_get_chunk(queue, results))
+            tasks.append(_get_response(queue, results, json=True))
 
         await gather(*tasks)
         return results
