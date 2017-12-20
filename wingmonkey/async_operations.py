@@ -170,37 +170,37 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
                           api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
 
     # get list total member count
+    total_member_count = 0
     while retry > 0:
-        try:
-            with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
+        with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
+            try:
                 total_member_count = MemberCollectionSerializer(session=session).read(list_id,
                                                                                       query=extra_params).total_items
-        except ClientException as e:
-            logger.warning('getting member count for list %s failed. Error: %s , %i retries left', list_id, e, retry)
-            retry -= 1
-            if not retry:
-                # we retried and failed, log as error
-                logger.error('getting member count for list %s failed. Error: %s', list_id, e)
-                return
-            sleep(sleepy_time)
-        else:
-            count = _calculate_count(total_member_count, max_count, max_chunks)
-            if count <= 0:
-                return
-            loop = get_event_loop()
-            queue = Queue()
-            responses = loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
-                                                                       max_chunks=max_chunks,
-                                                                       total_member_count=total_member_count,
-                                                                       extra_params=extra_params, retry=retry,
-                                                                       api_endpoint=api_endpoint, api_key=api_key))
-            all_members = {}
-            for response in responses:
-                if not all_members.get('members'):
-                    all_members.update(response)
-                else:
-                    all_members['members'].extend(response['members'])
-            return MemberCollection(**all_members)
+                break
+            except ClientException as e:
+                logger.warning('getting member count for list %s failed. Error: %s , %i retries left',
+                               list_id, e, retry)
+                retry -= 1
+                if not retry:
+                    # we retried and failed, log as error
+                    logger.error('getting member count for list %s failed. Error: %s', list_id, e)
+                    return
+                sleep(sleepy_time)
+
+    count = _calculate_count(total_member_count, max_count, max_chunks)
+    if count <= 0:
+        return
+    loop = get_event_loop()
+    queue = Queue()
+    responses = loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
+                                                               max_chunks=max_chunks,
+                                                               total_member_count=total_member_count,
+                                                               extra_params=extra_params, retry=retry,
+                                                               api_endpoint=api_endpoint, api_key=api_key))
+    all_members = dict(members=[])
+    for response in responses:
+            all_members['members'].extend(response['members'])
+    return MemberCollection(**all_members)
 
 
 def _calculate_count(total_member_count, max_count, max_chunks):

@@ -83,6 +83,24 @@ def test_get_all_members_async(caplog, expected_members):
         assert f'using default api key setting' in caplog.text
 
 
+def test_get_all_members_async_exception(caplog, expected_members):
+    """
+    The function we test here calls another async function. This is the expected behaviour:
+    First a regular get request should be  made to get total member count which will be mocked with Mocker
+    Next we expect several aiohttp GET requests to get chunks of the member list which we will mock with aioresponses
+    """
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+
+    with Mocker() as request_mock:
+            request_mock.get(f'{api_endpoint}/lists/{expected_members["list_id"]}/members', status_code=400)
+
+            assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1, sleepy_time=0,
+                                             api_endpoint=api_endpoint, api_key=api_key)
+
+            assert f'getting member count for list {expected_members["list_id"]} failed. Error' in caplog.text
+
+
 def test_batch_update_members_async(caplog, expected_members, expected_batch_operation_resource):
     """
     Expected behaviour:
