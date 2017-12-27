@@ -6,7 +6,7 @@ from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
 from marshmallow import Schema
 
-from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY
 
 logger = getLogger(__name__)
 
@@ -34,7 +34,7 @@ class MailChimpSession(object):
             set_event_loop(loop)
             self.loop = loop
 
-        connector = TCPConnector(loop=self.loop, verify_ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
+        connector = TCPConnector(loop=self.loop, verify_ssl=False)
         self.async_session = ClientSession(connector=connector)
 
     def __del__(self):

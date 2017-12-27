@@ -46,3 +46,4 @@ __pycache__/
 
 # virtualenv
 .venv/
+/wingmonkey/scripts/async_updates_tests.py

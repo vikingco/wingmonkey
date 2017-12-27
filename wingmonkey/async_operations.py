@@ -3,6 +3,7 @@ from aiohttp import ClientResponse
 from math import ceil
 from time import sleep
 from uuid import uuid4
+from types import GeneratorType
 
 from logging import getLogger
 
@@ -15,6 +16,31 @@ from wingmonkey.batch_operations import (BatchOperationResource, BatchOperation,
                                          BatchOperationCollectionSerializer, BatchOperationCollection)
 
 logger = getLogger(__name__)
+
+
+class Progress:
+
+    def __init__(self, callback, total=0):
+
+        if not isinstance(callback, GeneratorType):
+            raise TypeError(f'callback should be {GeneratorType} but got {type(callback)} instead')
+
+        self.callback = callback
+        self.id = uuid4()
+        self.total = total
+        self.completed = 0
+        self.last_response_status = None
+
+        next(callback)
+        self.send()
+
+    def send(self, step=0, status=200):
+        self.completed += step
+        self.last_response_status = status
+        self.callback.send(self)
+
+    def finish(self):
+        self.callback.close()
 
 
 async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=10):
@@ -52,29 +78,37 @@ async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=10
             await async_sleep(sleepy_time)
 
 
-async def _get_response(queue, results, json=False, status_only=False):
+async def _get_response(queue, results, json=False, status_only=False, progress=None):
     """
     :param queue: asyncio.Queue
     :param results: list
     :param json: Boolean: Return response json instead of whole instance
     :param status_only: Boolean: Only return response status instead of whole instance
+    :param progress: Progress instance
     """
     while not queue.empty():
         task = await queue.get()
+        batch_size = task.get('batch_size', 0)
+        task.pop('batch_size', None)
         response = await _async_task(**task)
 
-        if status_only or type(response) is not ClientResponse:
-            results.append(response.status)
+        if status_only or isinstance(response, ClientException):
+            result = response.status
         elif json:
-            results.append(await response.json())
+            result = await response.json()
         else:
-            results.append(response)
+            result = response
 
-        if type(response) is ClientResponse:
+        results.append(result)
+
+        if isinstance(response, ClientResponse):
             response.close()
 
+        if progress:
+            progress.send(step=batch_size, status=response.status)
 
-async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=5,
+
+async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=5, progress=None,
                                 api_endpoint=None, api_key=None):
     tasks = []
     results = []
@@ -86,32 +120,59 @@ async def _update_members_async(queue, list_id, member_list, status_only, max_ch
         path = f'lists/{list_id}'
 
         for j in range(0, len(member_list), MAX_MEMBERS_PER_BATCH):
-            batch_request = MemberBatchRequest(members=member_list[j:j + MAX_MEMBERS_PER_BATCH],
+            members = member_list[j:j + MAX_MEMBERS_PER_BATCH]
+            batch_size = len(members)
+            batch_request = MemberBatchRequest(members=members,
                                                update_existing=True)
 
             queue.put_nowait(dict(func=session.async_post,
                                   kwargs=(dict(url=f'{path}',
                                                json=member_batch_request_serializer.dumps(batch_request).data)),
-                                  retry=retry))
+                                  retry=retry, batch_size=batch_size))
 
         for chunk in range(0, max_chunks):
-            tasks.append(_get_response(queue, results, json=True, status_only=status_only))
+            tasks.append(_get_response(queue, results, json=True, status_only=status_only,
+                                       progress=progress))
 
         await gather(*tasks)
         return results
 
 
-def update_members_async(list_id, member_list, status_only=False, max_chunks=10, retry=5, sleepy_time=5,
+def update_members_async(list_id, member_list, status_only=False, max_chunks=10, retry=5, sleepy_time=5, callback=None,
                          api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
+    """
+
+    :param list_id: String:
+    :param member_list: List of Member instances
+    :param status_only: Boolean: only return status codes instead of full responses
+    :param max_chunks: Int: max simultaneous tasks (1 task = 1 connection to mailchimp)
+    :param retry: Int: how often to retry when failing
+    :param sleepy_time: Int: wait in seconds between retries
+    :param callback: GeneratorType: generator class to handle task progress updates
+    :param api_endpoint: String
+    :param api_key: String
+    :return: List of responses (either ClientResponse instances, JSON strings or status codes depending on params)
+    """
 
     loop = get_event_loop()
     queue = Queue()
+    progress = None
+
+    if callback:
+        try:
+            progress = Progress(callback=callback, total=len(member_list))
+        except TypeError as e:
+            logger.error(e)
+            return
 
     while retry > 0:
         try:
             responses = loop.run_until_complete(_update_members_async(
                 queue=queue, list_id=list_id, member_list=member_list, status_only=status_only, max_chunks=max_chunks,
-                retry=retry, api_endpoint=api_endpoint, api_key=api_key))
+                retry=retry, progress=progress, api_endpoint=api_endpoint, api_key=api_key))
+
+            if progress:
+                progress.finish()
 
             return responses
         except ClientException as e:

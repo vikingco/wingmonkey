@@ -1,4 +1,5 @@
 from copy import deepcopy
+from types import GeneratorType
 from datetime import datetime
 from requests_mock import Mocker
 from json import dumps, loads
@@ -322,3 +323,60 @@ def test_update_members_async_failed_response_only_return_status(caplog):
         assert response[0] == 400
 
         assert f'using default api key setting' in caplog.text
+
+
+def test_update_members_async_callback(expected_member_batches):
+
+    with aioresponses() as async_request_mock:
+        # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
+        batch1, batch2, member_list = expected_member_batches
+        list_id = member_list[0].list_id
+        callback_status = []
+
+        def callback():
+            while True:
+                progress = yield
+                callback_status.append(dict(total=progress.total, completed=progress.completed,
+                                            status=progress.last_response_status))
+
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
+        async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch2)
+
+        response = update_members_async(list_id=list_id,
+                                        member_list=member_list,
+                                        callback=callback())
+
+        # check if correct requests have been made
+        request1_data = async_request_mock.requests[(f'POST',
+                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][0][1]['data']
+        request2_data = async_request_mock.requests[(f'POST',
+                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
+
+        assert loads(request1_data) == batch1
+        assert loads(request2_data) == batch2
+
+        # check responses
+        assert response[0] == batch1
+        assert response[1] == batch2
+
+        assert callback_status == [
+            {'total': 1000, 'completed': 0, 'status': 200},
+            {'total': 1000, 'completed': 500, 'status': 200},
+            {'total': 1000, 'completed': 1000, 'status': 200},
+        ]
+
+
+def test_update_members_async_callback_wrong_type(caplog):
+
+    def non_generator_callback():
+        return 'call on meeeeee'
+
+    with aioresponses():
+        list_id = 'hailthefail'
+        member_list = [MemberFactory(list_id=list_id) for _ in range(10)]
+
+        assert not update_members_async(list_id=list_id,
+                                        member_list=member_list,
+                                        callback=non_generator_callback())
+
+        assert f'callback should be {GeneratorType} but got {type(non_generator_callback())} instead' in caplog.text
