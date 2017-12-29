@@ -117,7 +117,7 @@ def test_get_all_members_async_exception(caplog, expected_members):
             assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1, sleepy_time=0,
                                              api_endpoint=api_endpoint, api_key=api_key)
 
-            assert f'getting member count for list {expected_members["list_id"]} failed. Error' in caplog.text
+            assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
 
 
 def test_batch_update_members_async(caplog, expected_members, expected_batch_operation_resource):

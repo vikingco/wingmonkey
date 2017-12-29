@@ -6,7 +6,7 @@ from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
 from marshmallow import Schema
 
-from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS
 
 logger = getLogger(__name__)
 
@@ -34,7 +34,7 @@ class MailChimpSession(object):
             set_event_loop(loop)
             self.loop = loop
 
-        connector = TCPConnector(loop=self.loop, verify_ssl=False)
+        connector = TCPConnector(loop=self.loop, verify_ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
         self.async_session = ClientSession(connector=connector)
 
     def __del__(self):
@@ -45,6 +45,9 @@ class MailChimpSession(object):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
+        self.__del__()
+
+    def close(self):
         self.__del__()
 
     def _request(self, method, url=None, json=None, query_parameters=None, stream=False):
@@ -144,7 +147,6 @@ class ClientException(Exception):
     def __init__(self, http_code, response_body):
         self.status = http_code
         self.response_body = response_body
-        logger.error(response_body)
 
     def __repr__(self):
         return f'{self.status}: {self.response_body}'
