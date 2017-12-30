@@ -1,5 +1,4 @@
 from asyncio import get_event_loop, gather, Queue, sleep as async_sleep
-from aiohttp import ClientResponse
 from math import ceil
 from time import sleep
 from uuid import uuid4
@@ -34,7 +33,7 @@ class Progress:
         next(callback)
         self.send()
 
-    def send(self, step=0, status=200):
+    def send(self, step=0, status=None):
         self.completed += step
         self.last_response_status = status
         self.callback.send(self)
@@ -66,46 +65,43 @@ async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=10
 
     while retry > 0:
         try:
-            result = await func(*args, **kwargs)
-            return result
-        except Exception as e:
+            response = await func(*args, **kwargs)
+            json = await response.json()
+            status = response.status
+            response.close()
+            return json, status
+        except ClientException as e:
             logger.info('task %s failed. Error: %s , %i retries left', task_id, e, retry)
             retry -= 1
             if not retry:
                 # we retried and failed, log as error
                 logger.error('task %s failed (%s, params: %s %s). Error: %s ', task_id, func, args, kwargs, e)
-                return e
+                return None, e.status
             await async_sleep(sleepy_time)
 
 
-async def _get_response(queue, results, json=False, status_only=False, progress=None):
+async def _get_response(queue, results, status_only=False, progress=None):
     """
     :param queue: asyncio.Queue
     :param results: list
-    :param json: Boolean: Return response json instead of whole instance
-    :param status_only: Boolean: Only return response status instead of whole instance
+    :param status_only: Boolean: Only return response status instead of json data
     :param progress: Progress instance
     """
     while not queue.empty():
         task = await queue.get()
-        batch_size = task.get('batch_size', 0)
-        task.pop('batch_size', None)
-        response = await _async_task(**task)
+        batch_size = task.pop('batch_size', 0)
+        response_json, status = await _async_task(**task)
 
-        if status_only or isinstance(response, ClientException):
-            result = response.status
-        elif json:
-            result = await response.json()
+        if status_only:
+            result = status
         else:
-            result = response
+            result = response_json
 
-        results.append(result)
-
-        if isinstance(response, ClientResponse):
-            response.close()
+        if result is not None:
+            results.append(result)
 
         if progress:
-            progress.send(step=batch_size, status=response.status)
+            progress.send(step=batch_size, status=status)
 
 
 async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=5, progress=None,
@@ -131,7 +127,7 @@ async def _update_members_async(queue, list_id, member_list, status_only, max_ch
                                   retry=retry, batch_size=batch_size))
 
         for chunk in range(0, max_chunks):
-            tasks.append(_get_response(queue, results, json=True, status_only=status_only,
+            tasks.append(_get_response(queue, results, status_only=status_only,
                                        progress=progress))
 
         await gather(*tasks)
@@ -230,7 +226,7 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
                                   retry=retry))
 
         for chunk in range(0, max_chunks):
-            tasks.append(_get_response(queue, results, json=True))
+            tasks.append(_get_response(queue, results))
 
         await gather(*tasks)
         return results
@@ -280,7 +276,7 @@ async def _get_all_members_async(queue, list_id, count, max_chunks, total_member
                                   retry=retry))
 
         for chunk in range(0, max_chunks):
-            tasks.append(_get_response(queue, results, json=True))
+            tasks.append(_get_response(queue, results))
 
         await gather(*tasks)
         return results

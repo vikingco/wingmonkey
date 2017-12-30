@@ -307,7 +307,7 @@ def test_update_members_async_status_only_failed_response(caplog, expected_membe
         assert f'using default api key setting' in caplog.text
 
 
-def test_update_members_async_failed_response_only_return_status(caplog):
+def test_update_members_async_failed_response(caplog):
 
     with aioresponses() as async_request_mock:
         list_id = 'hailthefail'
@@ -320,7 +320,7 @@ def test_update_members_async_failed_response_only_return_status(caplog):
                                         status_only=False,
                                         retry=1)
 
-        assert response[0] == 400
+        assert response == []
 
         assert f'using default api key setting' in caplog.text
 
@@ -360,7 +360,7 @@ def test_update_members_async_callback(expected_member_batches):
         assert response[1] == batch2
 
         assert callback_status == [
-            {'total': 1000, 'completed': 0, 'status': 200},
+            {'total': 1000, 'completed': 0, 'status': None},
             {'total': 1000, 'completed': 500, 'status': 200},
             {'total': 1000, 'completed': 1000, 'status': 200},
         ]
