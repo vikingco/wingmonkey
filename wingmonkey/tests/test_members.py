@@ -207,3 +207,13 @@ def test_generate_member_id():
     """ Check if the md5 hash of some@email.com """
     expected_hexdigest = 'd8ffeba65ee5baf57e4901690edc8e1b'
     assert generate_member_id(email_address='some@email.com') == expected_hexdigest
+
+
+def test_member_empty_mergefields():
+    member = Member(merge_fields=None)
+    assert member.merge_fields == {}
+
+
+def test_member_mergefield_with_none_value():
+    member = Member(merge_fields={'NOTHING': None})
+    assert member.merge_fields['NOTHING'] == ''

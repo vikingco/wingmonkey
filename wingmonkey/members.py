@@ -121,7 +121,7 @@ class Member(MailChimpData):
         self.unsubscribe_reason = unsubscribe_reason
         self.unsubscribe_campaign_id = unsubscribe_campaign_id
         self.unsubscribe_campaign_title = unsubscribe_campaign_title
-        self.merge_fields = merge_fields
+        self.merge_fields = self._format_merge_fields(merge_fields)
         self.interests = interests
         self.stats = stats
         self.ip_signup = ip_signup
@@ -137,6 +137,15 @@ class Member(MailChimpData):
         self.last_note = last_note
         self.list_id = list_id
         self._links = _links
+
+    @staticmethod
+    def _format_merge_fields(merge_fields):
+        if merge_fields is None:
+            return {}
+        for key, value in merge_fields.items():
+            if value is None:
+                merge_fields[key] = ''
+        return merge_fields
 
 
 class MemberCollectionSerializer(MailChimpSessionSchema):
