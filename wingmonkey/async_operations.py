@@ -3,6 +3,7 @@ from math import ceil
 from time import sleep
 from uuid import uuid4
 from types import GeneratorType
+from collections import namedtuple
 
 from logging import getLogger
 
@@ -17,6 +18,9 @@ from wingmonkey.batch_operations import (BatchOperationResource, BatchOperation,
 logger = getLogger(__name__)
 
 
+ProgressStatus = namedtuple('ProgressStatus', 'id total completed last_response_status')
+
+
 class Progress:
 
     def __init__(self, callback, total=0):
@@ -25,18 +29,15 @@ class Progress:
             raise TypeError(f'callback should be {GeneratorType} but got {type(callback)} instead')
 
         self.callback = callback
-        self.id = uuid4()
-        self.total = total
-        self.completed = 0
-        self.last_response_status = None
+        self.progress_status = ProgressStatus(id=uuid4(), total=total, completed=0, last_response_status=None)
 
         next(callback)
         self.send()
 
-    def send(self, step=0, status=None):
-        self.completed += step
-        self.last_response_status = status
-        self.callback.send(self)
+    def send(self, step=0, response_status=None):
+        self.progress_status = self.progress_status._replace(completed=self.progress_status.completed + step,
+                                                             last_response_status=response_status)
+        self.callback.send(self.progress_status)
 
     def finish(self):
         self.callback.close()
@@ -101,7 +102,7 @@ async def _get_response(queue, results, status_only=False, progress=None):
             results.append(result)
 
         if progress:
-            progress.send(step=batch_size, status=status)
+            progress.send(step=batch_size, response_status=status)
 
 
 async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=5, progress=None,
