@@ -18,18 +18,19 @@ from wingmonkey.batch_operations import (BatchOperationResource, BatchOperation,
 logger = getLogger(__name__)
 
 
-ProgressStatus = namedtuple('ProgressStatus', 'id total completed last_response_status')
+ProgressStatus = namedtuple('ProgressStatus', 'id total completed last_response_status group_id group_total')
 
 
 class Progress:
 
-    def __init__(self, callback, total=0):
+    def __init__(self, callback, total=0, group_id=None, group_total=0):
 
         if not isinstance(callback, GeneratorType):
             raise TypeError(f'callback should be {GeneratorType} but got {type(callback)} instead')
 
         self.callback = callback
-        self.progress_status = ProgressStatus(id=uuid4(), total=total, completed=0, last_response_status=None)
+        self.progress_status = ProgressStatus(id=uuid4(), total=total, completed=0, last_response_status=None,
+                                              group_id=group_id, group_total=group_total)
 
         next(callback)
         self.send()
@@ -136,6 +137,7 @@ async def _update_members_async(queue, list_id, member_list, status_only, max_ch
 
 
 def update_members_async(list_id, member_list, status_only=False, max_chunks=10, retry=5, sleepy_time=5, callback=None,
+                         group_id=None, group_total=0,
                          api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
     """
 
@@ -146,6 +148,8 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
     :param retry: Int: how often to retry when failing
     :param sleepy_time: Int: wait in seconds between retries
     :param callback: GeneratorType: generator class to handle task progress updates
+    :param group_id: String: optional id to be able to identify a group of connected sync operations
+    :param group_total: Int: optional total count of members to sync in connected operations
     :param api_endpoint: String
     :param api_key: String
     :return: List of responses (either ClientResponse instances, JSON strings or status codes depending on params)
@@ -157,7 +161,7 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
 
     if callback:
         try:
-            progress = Progress(callback=callback, total=len(member_list))
+            progress = Progress(callback=callback, total=len(member_list), group_id=group_id, group_total=group_total)
         except TypeError as e:
             logger.error(e)
             return
