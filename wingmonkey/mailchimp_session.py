@@ -1,12 +1,13 @@
 from logging import getLogger
-from asyncio import get_event_loop, TimeoutError, new_event_loop, set_event_loop
+from asyncio import get_event_loop, TimeoutError, new_event_loop, set_event_loop, wait_for
 from requests import Session, exceptions
 from requests.auth import HTTPBasicAuth
 from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
 from marshmallow import Schema
 
-from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS
+from wingmonkey.settings import (DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS,
+                                 DEFAULT_ASYNC_WAIT)
 
 logger = getLogger(__name__)
 
@@ -22,7 +23,7 @@ class MailChimpSession(object):
         self.api_key = api_key
 
         if self.api_key == DEFAULT_MAILCHIMP_API_KEY:
-            logger.warning(f'{self.__class__} using default api key setting')
+            logger.info(f'{self.__class__} using default api key setting')
 
         # regular requests session
         self.session = Session()
@@ -109,8 +110,8 @@ class MailChimpSession(object):
 
         try:
             logger.debug('%s : %s/%s json=%s param=%s', method, self.api_endpoint, url, json, query_parameters)
-            response = await method(f'{self.api_endpoint}/{url}', headers={'Accept': 'application/json'},
-                                    data=json, params=query_parameters, auth=auth)
+            response = await wait_for(method(f'{self.api_endpoint}/{url}', headers={'Accept': 'application/json'},
+                                      data=json, params=query_parameters, auth=auth), timeout=DEFAULT_ASYNC_WAIT)
             response.raise_for_status()
             return response
         except web_exceptions.HTTPError:

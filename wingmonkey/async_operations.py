@@ -1,4 +1,4 @@
-from asyncio import get_event_loop, gather, Queue, sleep as async_sleep
+from asyncio import get_event_loop, gather, Queue, sleep as async_sleep, wait_for
 from math import ceil
 from time import sleep
 from uuid import uuid4
@@ -7,7 +7,7 @@ from collections import namedtuple
 
 from logging import getLogger
 
-from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY
+from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, DEFAULT_ASYNC_WAIT
 from wingmonkey.enums import MAX_MEMBERS_PER_BATCH
 from wingmonkey.mailchimp_session import MailChimpSession, ClientException
 from wingmonkey.members import (MemberCollection, MemberCollectionSerializer,
@@ -17,19 +17,17 @@ from wingmonkey.batch_operations import (BatchOperationResource, BatchOperation,
 
 logger = getLogger(__name__)
 
-
 ProgressStatus = namedtuple('ProgressStatus', 'id total completed last_response_status group_id group_total')
 
 
 class Progress:
-
-    def __init__(self, callback, total=0, group_id=None, group_total=0):
-
+    def __init__(self, callback, total=0, chunk_id=None, group_id=None, group_total=0):
         if not isinstance(callback, GeneratorType):
             raise TypeError(f'callback should be {GeneratorType} but got {type(callback)} instead')
 
         self.callback = callback
-        self.progress_status = ProgressStatus(id=uuid4(), total=total, completed=0, last_response_status=None,
+        self.chunk_id = chunk_id if chunk_id is not None else uuid4()
+        self.progress_status = ProgressStatus(id=self.chunk_id, total=total, completed=0, last_response_status=None,
                                               group_id=group_id, group_total=group_total)
 
         next(callback)
@@ -40,11 +38,15 @@ class Progress:
                                                              last_response_status=response_status)
         self.callback.send(self.progress_status)
 
+    def reset(self):
+        self.progress_status = self.progress_status._replace(completed=0,
+                                                             last_response_status='RESET')
+
     def finish(self):
         self.callback.close()
 
 
-async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=10):
+async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=5):
     """
     :param func: Function to be called
     :param args: list , positional args for func
@@ -106,7 +108,7 @@ async def _get_response(queue, results, status_only=False, progress=None):
             progress.send(step=batch_size, response_status=status)
 
 
-async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=5, progress=None,
+async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=3, progress=None,
                                 api_endpoint=None, api_key=None):
     tasks = []
     results = []
@@ -116,8 +118,9 @@ async def _update_members_async(queue, list_id, member_list, status_only, max_ch
         member_batch_request_serializer = MemberBatchRequestSerializer(session=session)
 
         path = f'lists/{list_id}'
+        total_size = len(member_list)
 
-        for j in range(0, len(member_list), MAX_MEMBERS_PER_BATCH):
+        for j in range(0, total_size, MAX_MEMBERS_PER_BATCH):
             members = member_list[j:j + MAX_MEMBERS_PER_BATCH]
             batch_size = len(members)
             batch_request = MemberBatchRequest(members=members,
@@ -132,12 +135,13 @@ async def _update_members_async(queue, list_id, member_list, status_only, max_ch
             tasks.append(_get_response(queue, results, status_only=status_only,
                                        progress=progress))
 
-        await gather(*tasks)
+        await wait_for(gather(*tasks), timeout=(
+                        ((total_size / MAX_MEMBERS_PER_BATCH) * (DEFAULT_ASYNC_WAIT * retry)) / max_chunks))
         return results
 
 
 def update_members_async(list_id, member_list, status_only=False, max_chunks=10, retry=5, sleepy_time=5, callback=None,
-                         group_id=None, group_total=0,
+                         chunk_id=None, group_id=None, group_total=0,
                          api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
     """
 
@@ -158,10 +162,12 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
     loop = get_event_loop()
     queue = Queue()
     progress = None
+    responses = None
 
     if callback:
         try:
-            progress = Progress(callback=callback, total=len(member_list), group_id=group_id, group_total=group_total)
+            progress = Progress(callback=callback, total=len(member_list), chunk_id=chunk_id,
+                                group_id=group_id, group_total=group_total)
         except TypeError as e:
             logger.error(e)
             return
@@ -172,23 +178,24 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
                 queue=queue, list_id=list_id, member_list=member_list, status_only=status_only, max_chunks=max_chunks,
                 retry=retry, progress=progress, api_endpoint=api_endpoint, api_key=api_key))
 
-            if progress:
-                progress.finish()
-
-            return responses
-        except ClientException as e:
+        except Exception as e:
             logger.info('update_members_async for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1
             if not retry:
                 # we retried and failed, log as error
                 logger.error('update_members_async for list %s failed. Error: %s', list_id, e)
                 return
+            progress.reset()
             sleep(sleepy_time)
+
+        finally:
+            if progress:
+                progress.finish()
+            return responses
 
 
 async def _batch_update_members_async(queue, list_id, member_list, max_chunks, batch_operation_collection_size=25000,
                                       retry=5, api_endpoint=None, api_key=None):
-
     """
     What happens here:
     1. Split a list of member instances in partial lists of <batch_operation_collection_size>
@@ -239,7 +246,6 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
 
 def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_call=25000, retry=5, sleepy_time=5,
                                api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
-
     loop = get_event_loop()
     queue = Queue()
 
@@ -267,7 +273,6 @@ def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_c
 
 async def _get_all_members_async(queue, list_id, count, max_chunks, total_member_count=0, extra_params=None, retry=3,
                                  api_endpoint=None, api_key=None):
-
     tasks = []
     results = []
     extra_params = extra_params or {}
@@ -289,7 +294,6 @@ async def _get_all_members_async(queue, list_id, count, max_chunks, total_member
 
 def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=None, retry=3, sleepy_time=5,
                           api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
-
     session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
     while retry > 0:
         try:
@@ -324,9 +328,8 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
 
 
 def _calculate_count(total_member_count, max_count, max_chunks):
-
-    if (total_member_count / (max_count*max_chunks)) > 1:
+    if (total_member_count / (max_count * max_chunks)) > 1:
         return max_count
     else:
-        count = ceil(total_member_count/max_chunks)
+        count = ceil(total_member_count / max_chunks)
         return count
