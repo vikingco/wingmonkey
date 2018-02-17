@@ -5,7 +5,8 @@ from logging import WARNING
 
 from wingmonkey.mailchimp_session import ClientException, MailChimpSession
 from wingmonkey.members import (Member, MemberSerializer, MemberCollection, MemberCollectionSerializer,
-                                MemberBatchRequestSerializer, MemberBatchRequest, generate_member_id)
+                                MemberBatchRequestSerializer, MemberBatchRequest, generate_member_id,
+                                MemberActivitySerializer)
 from wingmonkey.lists import ListSerializer
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.enums import MemberStatus
@@ -217,3 +218,28 @@ def test_member_empty_mergefields():
 def test_member_mergefield_with_none_value():
     member = Member(merge_fields={'NOTHING': None})
     assert member.merge_fields['NOTHING'] == ''
+
+
+def test_member_activity_read():
+    email_address = 'adoringfan@stalkmail.com'
+    list_id = 'no-idea-123'
+    expected_member_hash = 'c7e281082239e249d17360a9fffba276'
+    expected_member_activity = {
+         '_links': None,
+         'activity': [{'action': 'subscribe',
+                       'campaign_id': '',
+                       'timestamp': '2018-02-16T18:23:10+00:00',
+                       'type': 'A'}
+                      ],
+         'email_id': expected_member_hash,
+         'list_id': list_id,
+         'total_items': 1
+    }
+
+    with Mocker() as request_mock:
+        request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}/members/{expected_member_hash}/activity',
+                         text=dumps(expected_member_activity))
+        response = MemberActivitySerializer().read(list_id='no-idea-123', email_address=email_address)
+
+        assert response.activity == expected_member_activity['activity']
+        assert response.email_id == expected_member_hash

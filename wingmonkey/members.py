@@ -230,6 +230,30 @@ class MemberBatchResponse(MailChimpData):
         self._links = _links
 
 
+class MemberActivitySerializer(MailChimpSessionSchema):
+
+    activity = fields.List(cls_or_instance=fields.Dict())
+    email_id = fields.Str()
+    list_id = fields.Str()
+    total_items = fields.Int()
+    _links = fields.List(cls_or_instance=fields.Dict())
+
+    def read(self, list_id, email_address, query=None):
+        subscriber_hash = generate_member_id(email_address)
+        response = self.session.get(f'lists/{list_id}/members/{subscriber_hash}/activity', query_parameters=query)
+        return MemberActivity(**self.load(response.json()).data)
+
+
+class MemberActivity(MailChimpData):
+    def __init__(self, activity=None, email_id=None, list_id=None, total_items=0, _links=None):
+
+        self.activity = activity
+        self.email_id = email_id
+        self.list_id = list_id
+        self.total_items = total_items
+        self._links = _links
+
+
 def generate_member_id(email_address):
     # handle None values
     if not email_address:
