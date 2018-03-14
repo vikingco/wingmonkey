@@ -147,7 +147,7 @@ class ClientException(Exception):
     """
     def __init__(self, http_code, response_body):
         self.status = http_code
-        self.response_body = response_body
+        self.response_body = response_body if len(response_body) < 200 else f'{response_body[:200]}...TRUNCATED'
 
     def __repr__(self):
         return f'{self.status}: {self.response_body}'

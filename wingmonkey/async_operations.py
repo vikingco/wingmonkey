@@ -79,7 +79,7 @@ async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=5)
             retry -= 1
             if not retry:
                 # we retried and failed, log as error
-                logger.info('task %s failed (%s, params: %s %s). Error: %s ', task_id, func, args, kwargs, e)
+                logger.warning('task %s failed (%s, params: %s %s). Error: %s ', task_id, func, e)
                 return None, e.status
             await async_sleep(sleepy_time)
 
@@ -183,7 +183,7 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
             retry -= 1
             if not retry:
                 # we retried and failed
-                logger.info('update_members_async for list %s failed. Error: %s', list_id, e)
+                logger.warning('update_members_async for list %s failed. Error: %s', list_id, e)
                 return
             progress.reset()
             sleep(sleepy_time)
