@@ -6,7 +6,7 @@ from wingmonkey.async_operations import get_all_members_async
 
 logger = getLogger(__name__)
 
-ADMIN_UNSUBSCRIBE = 'Unsubscribed by an admin'
+ADMIN_UNSUBSCRIBE = 'admin'
 
 
 def import_all_members(list_ids=None, params=None, print_time=None, chunks=9, retry=10, session=None):
