@@ -55,6 +55,6 @@ def get_unsubscribed_mail_addresses_since(datetime_since=None, list_ids=None, se
     unique_mail_addresses = set()
     for member_collection in all_unsubscribes_since:
         unique_mail_addresses.update(member['email_address'] for member in member_collection.members
-                                     if ADMIN_UNSUBSCRIBE not in member['unsubscribe_reason'])
+                                     if ADMIN_UNSUBSCRIBE not in member.get('unsubscribe_reason', ''))
 
     return unique_mail_addresses
