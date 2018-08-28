@@ -1,9 +1,10 @@
 from logging import getLogger
-from asyncio import get_event_loop, TimeoutError, new_event_loop, set_event_loop, wait_for
+from asyncio import get_event_loop, TimeoutError, CancelledError, new_event_loop, set_event_loop, wait_for
 from requests import Session, exceptions
 from requests.auth import HTTPBasicAuth
 from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
+from aiohttp.client_exceptions import TimeoutError as AiohttpTimeoutError
 from marshmallow import Schema
 
 from wingmonkey.settings import (DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS,
@@ -122,8 +123,10 @@ class MailChimpSession(object):
             raise ClientException(504, 'Time out')
         except web_exceptions.HTTPServiceUnavailable:
             raise ClientException(503, 'Can not connect to server')
-        except TimeoutError:
-            raise ClientException(0, 'Asyncio Timeout Error')
+        except (TimeoutError, AiohttpTimeoutError):
+            raise ClientException(500, 'Asyncio timeout error')
+        except CancelledError:
+            raise ClientException(500, 'Asyncio future cancelled error')
 
     async def async_get(self, url=None, json=None, query_parameters=None):
         return await self._async_request(self.async_session.get, url, json, query_parameters)
