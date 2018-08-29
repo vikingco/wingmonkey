@@ -25,7 +25,7 @@ for req in requirements_test_file:
 
 setup(
     name='wingmonkey',
-    version='0.1.9',
+    version='0.1.18',
     url='https://github.com/vikingco/wingmonkey',
     license='BSD',
     author='Jonas Steur',
