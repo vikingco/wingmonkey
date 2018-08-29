@@ -1,4 +1,4 @@
-from asyncio import get_event_loop, gather, Queue, sleep as async_sleep, wait_for
+from asyncio import get_event_loop, gather, Queue, sleep as async_sleep, wait_for, TimeoutError
 from math import ceil
 from time import sleep
 from uuid import uuid4
@@ -74,7 +74,7 @@ async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=5)
             status = response.status
             response.close()
             return json, status
-        except ClientException as e:
+        except (ClientException, TimeoutError) as e:
             logger.info('task %s failed. Error: %s , %i retries left', task_id, e, retry)
             retry -= 1
             if not retry:

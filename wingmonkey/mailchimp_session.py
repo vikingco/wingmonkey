@@ -4,7 +4,6 @@ from requests import Session, exceptions
 from requests.auth import HTTPBasicAuth
 from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
 from aiohttp.connector import TCPConnector
-from aiohttp.client_exceptions import TimeoutError as AiohttpTimeoutError
 from marshmallow import Schema
 
 from wingmonkey.settings import (DEFAULT_MAILCHIMP_ROOT, DEFAULT_MAILCHIMP_API_KEY, MAILCHIMP_MAX_CONNECTIONS,
@@ -40,8 +39,11 @@ class MailChimpSession(object):
         self.async_session = ClientSession(connector=connector)
 
     def __del__(self):
-        self.session.close()
-        self.async_session.close()
+        try:
+            self.session.close()
+            self.async_session.close()
+        except Exception as e:
+            logger.warning(f'MailChimpSession could not be closed cleanly: {e} ')
 
     def __enter__(self):
         return self
@@ -123,7 +125,7 @@ class MailChimpSession(object):
             raise ClientException(504, 'Time out')
         except web_exceptions.HTTPServiceUnavailable:
             raise ClientException(503, 'Can not connect to server')
-        except (TimeoutError, AiohttpTimeoutError):
+        except (TimeoutError, client_exceptions.TimeoutError):
             raise ClientException(500, 'Asyncio timeout error')
         except CancelledError:
             raise ClientException(500, 'Asyncio future cancelled error')
