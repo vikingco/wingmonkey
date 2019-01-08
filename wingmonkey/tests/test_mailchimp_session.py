@@ -193,30 +193,27 @@ def test_mailchimsession_async_client_connection_exception(mailchimp_session):
         assert raises(ClientException, mailchimp_session.loop.run_until_complete, mailchimp_session.async_get())
 
 
-def test_mailchimpsession_warning_if_using_defaults(caplog):
+def test_mailchimpsession_warning_if_using_defaults():
     session = MailChimpSession()
     assert session.api_key == DEFAULT_MAILCHIMP_API_KEY
-    assert f'using default api key setting' in caplog.text
 
 
-def test_mailchimpsession_no_warning_if_using_custom_settings(caplog):
+def test_mailchimpsession_no_warning_if_using_custom_settings():
     api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
     api_key = '1234-tst1'
     session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
 
     assert session.api_endpoint == api_endpoint
     assert session.api_key == api_key
-    assert f'using default api key setting' not in caplog.text
 
 
-def test_mailchimp_session_schema_default(caplog):
+def test_mailchimp_session_schema_default():
 
     serializer = MailChimpSessionSchema()
     assert serializer.session.api_key == DEFAULT_MAILCHIMP_API_KEY
-    assert f'using default api key setting' in caplog.text
 
 
-def test_mailchimp_session_schema_custom_session(caplog):
+def test_mailchimp_session_schema_custom_session():
     api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
     api_key = '1234-tst1'
     session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
@@ -224,10 +221,9 @@ def test_mailchimp_session_schema_custom_session(caplog):
 
     assert serializer.session.api_endpoint == api_endpoint
     assert serializer.session.api_key == api_key
-    assert f'using default api key setting' not in caplog.text
 
 
-def test_mailchimp_session_schema_nested(caplog):
+def test_mailchimp_session_schema_nested():
     api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
     api_key = '1234-tst1'
     session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
@@ -238,5 +234,3 @@ def test_mailchimp_session_schema_nested(caplog):
     parent_serializer = ParentSerializer(session=session)
     json = dumps(dict(nested_serializer=''))
     parent_serializer.load(json)
-
-    assert f'using default api key setting' not in caplog.text

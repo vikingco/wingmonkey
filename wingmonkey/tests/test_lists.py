@@ -176,18 +176,15 @@ def test_lists_read(expected_lists):
         assert mailchimp_lists.total_items == expected_lists.total_items
 
 
-def test_get_all_lists(caplog, expected_lists):
+def test_get_all_lists(expected_lists):
     with Mocker() as request_mock:
         request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists', text=dumps(expected_lists))
         mailchimp_lists = get_all_lists()
         expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
 
-        # sanity check
-        assert f'using default api key setting' in caplog.text
 
-
-def test_get_all_lists_custom_session(caplog, expected_lists):
+def test_get_all_lists_custom_session(expected_lists):
     api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
     api_key = '1234-tst1'
     session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
@@ -197,8 +194,6 @@ def test_get_all_lists_custom_session(caplog, expected_lists):
         mailchimp_lists = get_all_lists(session=session)
         expected_lists = ListCollection(**expected_lists)
         assert mailchimp_lists.lists == expected_lists.lists
-
-        assert f'using default api key setting' not in caplog.text
 
 
 def test_list_collection_serializer():

@@ -7,6 +7,7 @@ from pytest import fixture
 from aioresponses import aioresponses
 from asyncio import TimeoutError
 from unittest.mock import patch
+from logging import INFO
 
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.factories import MemberFactory
@@ -81,7 +82,7 @@ def _create_chunks(members_dict, chunk_size):
     return chunks
 
 
-def test_get_all_members_async(caplog, expected_members):
+def test_get_all_members_async(expected_members):
     """
     The function we test here calls another async function. This is the expected behaviour:
     First a regular get request should be  made to get total member count which will be mocked with Mocker
@@ -100,11 +101,8 @@ def test_get_all_members_async(caplog, expected_members):
         response = get_all_members_async(list_id=expected_members["list_id"], max_count=10)
         assert response.members == expected_members['members']
 
-        # sanity check
-        assert f'using default api key setting' in caplog.text
 
-
-def test_get_all_members_async_exception(caplog, expected_members):
+def test_get_all_members_async_exception(expected_members):
     """
     The function we test here calls another async function. This is the expected behaviour:
     First a regular get request should be  made to get total member count which will be mocked with Mocker
@@ -119,10 +117,9 @@ def test_get_all_members_async_exception(caplog, expected_members):
             assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1, sleepy_time=0,
                                              api_endpoint=api_endpoint, api_key=api_key)
 
-            assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
-
 
 def test_get_all_members_async_timeout_exception(caplog, expected_members):
+    caplog.set_level(INFO)
     api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
     api_key = '1234-tst1'
 
@@ -136,7 +133,7 @@ def test_get_all_members_async_timeout_exception(caplog, expected_members):
                 assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
 
 
-def test_batch_update_members_async(caplog, expected_members, expected_batch_operation_resource):
+def test_batch_update_members_async(expected_members, expected_batch_operation_resource):
     """
     Expected behaviour:
     The input list gets chopped up into chunks of 'members_per_call' length
@@ -153,11 +150,8 @@ def test_batch_update_members_async(caplog, expected_members, expected_batch_ope
         for i in range(10):
             assert response[i].__dict__ == expected_batch_operation_resource
 
-        # sanity check
-        assert f'using default api key setting' in caplog.text
 
-
-def test_get_all_members_async_with_custom_api_settings(caplog, expected_members_with_custom_session):
+def test_get_all_members_async_with_custom_api_settings(expected_members_with_custom_session):
     """
     The function we test here calls another async function. This is the expected behaviour:
     First a regular get request should be  made to get total member count which will be mocked with Mocker
@@ -181,10 +175,9 @@ def test_get_all_members_async_with_custom_api_settings(caplog, expected_members
                                          api_endpoint=api_endpoint,
                                          api_key=api_key)
         assert response.members == expected_members_with_custom_session['members']
-        assert f'using default api key setting' not in caplog.text
 
 
-def test_batch_update_members_async_with_custom_api_settings(caplog, expected_members_with_custom_session,
+def test_batch_update_members_async_with_custom_api_settings(expected_members_with_custom_session,
                                                              expected_batch_operation_resource):
     """
     Expected behaviour:
@@ -208,10 +201,8 @@ def test_batch_update_members_async_with_custom_api_settings(caplog, expected_me
         for i in range(10):
             assert response[i].__dict__ == expected_batch_operation_resource
 
-        assert f'using default api key setting' not in caplog.text
 
-
-def test_update_members_async(caplog, expected_member_batches):
+def test_update_members_async(expected_member_batches):
 
     with aioresponses() as async_request_mock:
         # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
@@ -237,10 +228,8 @@ def test_update_members_async(caplog, expected_member_batches):
         assert response[0] == batch1
         assert response[1] == batch2
 
-        assert f'using default api key setting' in caplog.text
 
-
-def test_update_members_async_with_custom_api_settings(caplog, expected_member_batches):
+def test_update_members_async_with_custom_api_settings(expected_member_batches):
     api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
     api_key = '1234-tst1'
 
@@ -269,10 +258,8 @@ def test_update_members_async_with_custom_api_settings(caplog, expected_member_b
         assert response[0] == batch1
         assert response[1] == batch2
 
-        assert f'using default api key setting' not in caplog.text
 
-
-def test_update_members_async_status_only(caplog, expected_member_batches):
+def test_update_members_async_status_only(expected_member_batches):
 
     with aioresponses() as async_request_mock:
         # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
@@ -299,10 +286,8 @@ def test_update_members_async_status_only(caplog, expected_member_batches):
         assert response[0] == 200
         assert response[1] == 200
 
-        assert f'using default api key setting' in caplog.text
 
-
-def test_update_members_async_status_only_failed_response(caplog, expected_member_batches):
+def test_update_members_async_status_only_failed_response(expected_member_batches):
 
     with aioresponses() as async_request_mock:
         # as the length of expected_members_thousand is 1000 and max members per POST is 500 we expect 2 requests
@@ -320,10 +305,8 @@ def test_update_members_async_status_only_failed_response(caplog, expected_membe
         assert response[0] == 200
         assert response[1] == 400
 
-        assert f'using default api key setting' in caplog.text
 
-
-def test_update_members_async_failed_response(caplog):
+def test_update_members_async_failed_response():
 
     with aioresponses() as async_request_mock:
         list_id = 'hailthefail'
@@ -337,8 +320,6 @@ def test_update_members_async_failed_response(caplog):
                                         retry=1)
 
         assert response == []
-
-        assert f'using default api key setting' in caplog.text
 
 
 def test_update_members_async_callback(expected_member_batches):
