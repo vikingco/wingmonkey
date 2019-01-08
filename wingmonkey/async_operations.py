@@ -135,7 +135,7 @@ async def _update_members_async(queue, list_id, member_list, status_only, max_ch
             tasks.append(_get_response(queue, results, status_only=status_only,
                                        progress=progress))
 
-        await wait_for(gather(*tasks), timeout=(
+        await wait_for(gather(*tasks, return_exceptions=True), timeout=(
                         ((total_size / MAX_MEMBERS_PER_BATCH) * (DEFAULT_ASYNC_WAIT * retry)) / max_chunks))
         return results
 
@@ -240,7 +240,7 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
         for chunk in range(0, max_chunks):
             tasks.append(_get_response(queue, results))
 
-        await gather(*tasks)
+        await gather(*tasks, return_exceptions=True)
         return results
 
 
@@ -288,7 +288,7 @@ async def _get_all_members_async(queue, list_id, count, max_chunks, total_member
         for chunk in range(0, max_chunks):
             tasks.append(_get_response(queue, results))
 
-        await gather(*tasks)
+        await gather(*tasks, return_exceptions=True)
         return results
 
 
@@ -317,7 +317,7 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
             for response in responses:
                 all_members['members'].extend(response['members'])
             return MemberCollection(**all_members)
-        except ClientException as e:
+        except (ClientException, TimeoutError) as e:
             logger.info('get_all_members_async for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1
             if not retry:

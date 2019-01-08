@@ -5,6 +5,8 @@ from requests_mock import Mocker
 from json import dumps, loads
 from pytest import fixture
 from aioresponses import aioresponses
+from asyncio import TimeoutError
+from unittest.mock import patch
 
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.factories import MemberFactory
@@ -118,6 +120,20 @@ def test_get_all_members_async_exception(caplog, expected_members):
                                              api_endpoint=api_endpoint, api_key=api_key)
 
             assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
+
+
+def test_get_all_members_async_timeout_exception(caplog, expected_members):
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+
+    with patch('wingmonkey.async_operations._get_all_members_async', side_effect=TimeoutError):
+        with Mocker() as request_mock:
+                request_mock.get(f'{api_endpoint}/lists/{expected_members["list_id"]}/members', status_code=400)
+
+                assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1,
+                                                 sleepy_time=0, api_endpoint=api_endpoint, api_key=api_key)
+
+                assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
 
 
 def test_batch_update_members_async(caplog, expected_members, expected_batch_operation_resource):
