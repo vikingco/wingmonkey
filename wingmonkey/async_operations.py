@@ -1,4 +1,4 @@
-from asyncio import get_event_loop, gather, Queue, sleep as async_sleep, wait_for, TimeoutError
+from asyncio import get_event_loop, gather, sleep as async_sleep, wait_for, TimeoutError, Semaphore
 from math import ceil
 from time import sleep
 from uuid import uuid4
@@ -84,34 +84,46 @@ async def _async_task(func=None, args=None, kwargs=None, retry=3, sleepy_time=5)
             await async_sleep(sleepy_time)
 
 
-async def _get_response(queue, results, status_only=False, progress=None):
+async def _get_response(task, status_only=False, progress=None):
     """
-    :param queue: asyncio.Queue
     :param results: list
     :param status_only: Boolean: Only return response status instead of json data
     :param progress: Progress instance
     """
-    while not queue.empty():
-        task = await queue.get()
-        batch_size = task.pop('batch_size', 0)
-        response_json, status = await _async_task(**task)
 
-        if status_only:
-            result = status
-        else:
-            result = response_json
+    batch_size = task.pop('batch_size', 0)
+    response_json, status = await _async_task(**task)
 
-        if result is not None:
-            results.append(result)
+    if status_only:
+        result = status
+    else:
+        result = response_json
 
-        if progress:
-            progress.send(step=batch_size, response_status=status)
+    if progress:
+        progress.send(step=batch_size, response_status=status)
+
+    return result
 
 
-async def _update_members_async(queue, list_id, member_list, status_only, max_chunks, retry=3, progress=None,
-                                api_endpoint=None, api_key=None):
+async def _get_responses_async(requests: list, max_concurrency: int, status_only: bool = False,
+                               progress: Progress = None):
     tasks = []
-    results = []
+    semaphore = Semaphore(max_concurrency)
+    async with semaphore:
+        for request in requests:
+            tasks.append(_get_response(request, status_only=status_only, progress=progress))
+        return await gather(*tasks, return_exceptions=True)
+
+
+async def _calculate_timeout(total_batch_size, retry_count, max_concurrency):
+    number_of_batches = total_batch_size / MAX_MEMBERS_PER_BATCH
+    timeout_per_batch = DEFAULT_ASYNC_WAIT * retry_count
+    return number_of_batches * timeout_per_batch / max_concurrency
+
+
+async def _update_members_async(list_id, member_list, status_only, max_chunks, retry=3, progress=None,
+                                api_endpoint=None, api_key=None):
+    requests = []
 
     with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
 
@@ -126,18 +138,15 @@ async def _update_members_async(queue, list_id, member_list, status_only, max_ch
             batch_request = MemberBatchRequest(members=members,
                                                update_existing=True)
 
-            queue.put_nowait(dict(func=session.async_post,
-                                  kwargs=(dict(url=f'{path}',
-                                               json=member_batch_request_serializer.dumps(batch_request).data)),
-                                  retry=retry, batch_size=batch_size))
+            requests.append(dict(func=session.async_post,
+                                 kwargs=(dict(url=f'{path}',
+                                              json=member_batch_request_serializer.dumps(batch_request).data)),
+                                 retry=retry, batch_size=batch_size))
 
-        for chunk in range(0, max_chunks):
-            tasks.append(_get_response(queue, results, status_only=status_only,
-                                       progress=progress))
-
-        await wait_for(gather(*tasks, return_exceptions=True), timeout=(
-                        ((total_size / MAX_MEMBERS_PER_BATCH) * (DEFAULT_ASYNC_WAIT * retry)) / max_chunks))
-        return results
+        return await wait_for(_get_responses_async(requests, max_concurrency=max_chunks, status_only=status_only,
+                                                   progress=progress),
+                              timeout=(await _calculate_timeout(total_batch_size=total_size, retry_count=retry,
+                                                                max_concurrency=max_chunks)))
 
 
 def update_members_async(list_id, member_list, status_only=False, max_chunks=10, retry=5, sleepy_time=5, callback=None,
@@ -160,7 +169,6 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
     """
 
     loop = get_event_loop()
-    queue = Queue()
     progress = None
     responses = None
 
@@ -175,8 +183,8 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
     while retry > 0:
         try:
             responses = loop.run_until_complete(_update_members_async(
-                queue=queue, list_id=list_id, member_list=member_list, status_only=status_only, max_chunks=max_chunks,
-                retry=retry, progress=progress, api_endpoint=api_endpoint, api_key=api_key))
+                list_id=list_id, member_list=member_list, status_only=status_only, max_chunks=max_chunks, retry=retry,
+                progress=progress, api_endpoint=api_endpoint, api_key=api_key))
 
         except Exception as e:
             logger.info('update_members_async for list %s failed. Error: %s , %i retries left', list_id, e, retry)
@@ -191,24 +199,13 @@ def update_members_async(list_id, member_list, status_only=False, max_chunks=10,
         finally:
             if progress:
                 progress.finish()
-            return responses
+            return [response for response in responses if response is not None]
 
 
-async def _batch_update_members_async(queue, list_id, member_list, max_chunks, batch_operation_collection_size=25000,
+async def _batch_update_members_async(list_id, member_list, max_chunks, batch_operation_collection_size=25000,
                                       retry=5, api_endpoint=None, api_key=None):
-    """
-    What happens here:
-    1. Split a list of member instances in partial lists of <batch_operation_collection_size>
-    2. Per partial list create MemberbatchRequest instance (500 members per instance, as that's the mailchimp limit)
-    3. Combine all MemberBatchRequest instances in one BatchOperationCollection instance and add to queue
-    4. When this is done for all partial lists process the queue, <max_chunks> tasks at a time
-    5. Gather and return results when queue is processed completely
-    batch operations reference: http://developer.mailchimp.com/documentation/mailchimp/reference/batches/#%20
-    :return: List of BatchOperationResource instances
-    """
 
-    tasks = []
-    results = []
+    requests = []
 
     with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
 
@@ -231,65 +228,58 @@ async def _batch_update_members_async(queue, list_id, member_list, max_chunks, b
 
             batch_operations = BatchOperationCollection(operations=operations)
 
-            queue.put_nowait(dict(func=session.async_post,
-                                  kwargs=(dict(url=f'batches',
-                                               json=batch_operation_collection_serializer.
-                                               dumps(batch_operations).data)),
-                                  retry=retry))
+            requests.append(dict(func=session.async_post,
+                                 kwargs=(dict(url=f'batches',
+                                              json=batch_operation_collection_serializer.dumps(batch_operations).data)),
+                                 retry=retry))
 
-        for chunk in range(0, max_chunks):
-            tasks.append(_get_response(queue, results))
-
-        await gather(*tasks, return_exceptions=True)
-        return results
+        return await _get_responses_async(requests, max_concurrency=max_chunks)
 
 
 def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_call=25000, retry=5, sleepy_time=5,
                                api_endpoint=DEFAULT_MAILCHIMP_ROOT, api_key=DEFAULT_MAILCHIMP_API_KEY):
     loop = get_event_loop()
-    queue = Queue()
 
     while retry > 0:
         try:
             responses = loop.run_until_complete(_batch_update_members_async(
-                queue=queue, list_id=list_id, member_list=member_list, max_chunks=max_chunks,
+                list_id=list_id, member_list=member_list, max_chunks=max_chunks,
                 batch_operation_collection_size=members_per_call, retry=retry,
                 api_endpoint=api_endpoint, api_key=api_key))
 
             batch_operation_resources = []
             for response in responses:
-                batch_operation_resources.append(BatchOperationResource(**response))
+                if isinstance(response, Exception):
+                    logger.warning('wingmonkey.get_all_members_async chunk raised exception: %s', response)
+                    continue
+                if response:
+                    batch_operation_resources.append(BatchOperationResource(**response))
 
             return batch_operation_resources
         except ClientException as e:
             logger.info('creating batch operations for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1
-            if not retry:
+            if retry < 1:
                 # we retried and failed, log as error
                 logger.error('creating batch operations for list %s failed. Error: %s', list_id, e)
                 return
             sleep(sleepy_time)
 
 
-async def _get_all_members_async(queue, list_id, count, max_chunks, total_member_count=0, extra_params=None, retry=3,
+async def _get_all_members_async(list_id, count, max_chunks, total_member_count=0, extra_params=None, retry=3,
                                  api_endpoint=None, api_key=None):
-    tasks = []
-    results = []
+    requests = []
     extra_params = extra_params or {}
 
     with MailChimpSession(api_endpoint=api_endpoint, api_key=api_key) as session:
 
         for i in range(ceil(total_member_count / count)):
-            queue.put_nowait(dict(func=session.async_get,
-                                  kwargs=dict(url=f'lists/{list_id}/members',
-                                              query_parameters=dict(count=count, offset=i * count, **extra_params)),
-                                  retry=retry))
+            requests.append(dict(func=session.async_get,
+                                 kwargs=dict(url=f'lists/{list_id}/members',
+                                             query_parameters=dict(count=count, offset=i * count, **extra_params)),
+                                 retry=retry))
 
-        for chunk in range(0, max_chunks):
-            tasks.append(_get_response(queue, results))
-
-        await gather(*tasks, return_exceptions=True)
-        return results
+        return await _get_responses_async(requests, max_concurrency=max_chunks)
 
 
 def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=None, retry=3, sleepy_time=5,
@@ -307,20 +297,23 @@ def get_all_members_async(list_id, max_count=1000, max_chunks=9, extra_params=No
 
             # get members
             loop = get_event_loop()
-            queue = Queue()
-            responses = loop.run_until_complete(_get_all_members_async(queue=queue, list_id=list_id, count=count,
+            responses = loop.run_until_complete(_get_all_members_async(list_id=list_id, count=count,
                                                                        max_chunks=max_chunks,
                                                                        total_member_count=total_member_count,
                                                                        extra_params=extra_params, retry=retry,
                                                                        api_endpoint=api_endpoint, api_key=api_key))
             all_members = dict(members=[])
             for response in responses:
-                all_members['members'].extend(response['members'])
+                if isinstance(response, Exception):
+                    logger.warning('wingmonkey.get_all_members_async chunk raised exception: %s', response)
+                    continue
+                if response:
+                    all_members['members'].extend(response['members'])
             return MemberCollection(**all_members)
         except (ClientException, TimeoutError) as e:
             logger.info('get_all_members_async for list %s failed. Error: %s , %i retries left', list_id, e, retry)
             retry -= 1
-            if not retry:
+            if retry < 1:
                 # we retried and failed
                 logger.info('get_all_members_async for list %s failed. Error: %s', list_id, e)
                 return

@@ -1,6 +1,21 @@
 # .coveragerc to control coverage.py
 [run]
 branch = True
+omit =
+    # Ignore deployment files
+    requirements/*
+
+    # Ignore docs
+    docs/*
+
+    # Ignore manage files
+    manage*
+
+    # Ignore scripts files
+    wingmonkey/scripts/*
+
+    # Ignore settings files
+    */settings*
 
 [report]
 # Regexes for lines to exclude from consideration

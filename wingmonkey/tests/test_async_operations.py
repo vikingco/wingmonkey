@@ -7,6 +7,7 @@ from pytest import fixture
 from aioresponses import aioresponses
 from asyncio import TimeoutError
 from unittest.mock import patch
+from asynctest.mock import patch as async_patch
 from logging import INFO
 
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
@@ -99,7 +100,8 @@ def test_get_all_members_async(expected_members):
                                    body=dumps(chunks[i]))
 
         response = get_all_members_async(list_id=expected_members["list_id"], max_count=10)
-        assert response.members == expected_members['members']
+        for member in expected_members['members']:
+            assert member in response.members
 
 
 def test_get_all_members_async_exception(expected_members):
@@ -131,6 +133,21 @@ def test_get_all_members_async_timeout_exception(caplog, expected_members):
                                                  sleepy_time=0, api_endpoint=api_endpoint, api_key=api_key)
 
                 assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
+
+
+def test_get_all_members_async_exception_in_response(caplog, expected_members):
+    caplog.set_level(INFO)
+    api_endpoint = 'https://tst1.api.mailchimp.com/3.0'
+    api_key = '1234-tst1'
+
+    with Mocker() as request_mock:
+        with async_patch('wingmonkey.async_operations._get_response', side_effect=Exception):
+            request_mock.get(f'{api_endpoint}/lists/{expected_members["list_id"]}/members',
+                             text=dumps({'total_items': 100}))
+
+            get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1,
+                                  sleepy_time=0, api_endpoint=api_endpoint, api_key=api_key)
+            assert f'wingmonkey.get_all_members_async chunk raised exception' in caplog.text
 
 
 def test_batch_update_members_async(expected_members, expected_batch_operation_resource):
@@ -174,7 +191,9 @@ def test_get_all_members_async_with_custom_api_settings(expected_members_with_cu
         response = get_all_members_async(list_id=expected_members_with_custom_session["list_id"], max_count=10,
                                          api_endpoint=api_endpoint,
                                          api_key=api_key)
-        assert response.members == expected_members_with_custom_session['members']
+
+        for member in expected_members_with_custom_session['members']:
+            assert member in response.members
 
 
 def test_batch_update_members_async_with_custom_api_settings(expected_members_with_custom_session,
@@ -212,8 +231,8 @@ def test_update_members_async(expected_member_batches):
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch2)
 
-        response = update_members_async(list_id=list_id,
-                                        member_list=member_list)
+        responses = update_members_async(list_id=list_id,
+                                         member_list=member_list)
 
         # check if correct requests have been made
         request1_data = async_request_mock.requests[(f'POST',
@@ -221,12 +240,14 @@ def test_update_members_async(expected_member_batches):
         request2_data = async_request_mock.requests[(f'POST',
                                                      f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
 
-        assert loads(request1_data) == batch1
-        assert loads(request2_data) == batch2
+        request_data = [loads(request1_data), loads(request2_data)]
+
+        assert batch1 in request_data
+        assert batch2 in request_data
 
         # check responses
-        assert response[0] == batch1
-        assert response[1] == batch2
+        assert batch1 in responses
+        assert batch2 in responses
 
 
 def test_update_members_async_with_custom_api_settings(expected_member_batches):
@@ -241,9 +262,9 @@ def test_update_members_async_with_custom_api_settings(expected_member_batches):
         async_request_mock.post(f'{api_endpoint}/lists/{list_id}', payload=batch1)
         async_request_mock.post(f'{api_endpoint}/lists/{list_id}', payload=batch2)
 
-        response = update_members_async(list_id=list_id,
-                                        member_list=member_list,
-                                        api_endpoint=api_endpoint, api_key=api_key)
+        responses = update_members_async(list_id=list_id,
+                                         member_list=member_list,
+                                         api_endpoint=api_endpoint, api_key=api_key)
 
         # check if correct requests have been made
         request1_data = async_request_mock.requests[(f'POST',
@@ -251,12 +272,14 @@ def test_update_members_async_with_custom_api_settings(expected_member_batches):
         request2_data = async_request_mock.requests[(f'POST',
                                                      f'{api_endpoint}/lists/{list_id}')][1][1]['data']
 
-        assert loads(request1_data) == batch1
-        assert loads(request2_data) == batch2
+        request_data = [loads(request1_data), loads(request2_data)]
+
+        assert batch1 in request_data
+        assert batch2 in request_data
 
         # check responses
-        assert response[0] == batch1
-        assert response[1] == batch2
+        assert batch1 in responses
+        assert batch2 in responses
 
 
 def test_update_members_async_status_only(expected_member_batches):
@@ -269,9 +292,9 @@ def test_update_members_async_status_only(expected_member_batches):
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch2)
 
-        response = update_members_async(list_id=list_id,
-                                        member_list=member_list,
-                                        status_only=True)
+        responses = update_members_async(list_id=list_id,
+                                         member_list=member_list,
+                                         status_only=True)
 
         # check if correct requests have been made
         request1_data = async_request_mock.requests[(f'POST',
@@ -279,12 +302,14 @@ def test_update_members_async_status_only(expected_member_batches):
         request2_data = async_request_mock.requests[(f'POST',
                                                      f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
 
-        assert loads(request1_data) == batch1
-        assert loads(request2_data) == batch2
+        request_data = [loads(request1_data), loads(request2_data)]
+
+        assert batch1 in request_data
+        assert batch2 in request_data
 
         # check responses
-        assert response[0] == 200
-        assert response[1] == 200
+        assert 200 in responses
+        assert 200 in responses
 
 
 def test_update_members_async_status_only_failed_response(expected_member_batches):
@@ -297,13 +322,13 @@ def test_update_members_async_status_only_failed_response(expected_member_batche
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', status=400)
 
-        response = update_members_async(list_id=list_id,
-                                        member_list=member_list,
-                                        status_only=True,
-                                        retry=1)
+        responses = update_members_async(list_id=list_id,
+                                         member_list=member_list,
+                                         status_only=True,
+                                         retry=1)
 
-        assert response[0] == 200
-        assert response[1] == 400
+        assert 200 in responses
+        assert 400 in responses
 
 
 def test_update_members_async_failed_response():
@@ -339,9 +364,9 @@ def test_update_members_async_callback(expected_member_batches):
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch1)
         async_request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}', payload=batch2)
 
-        response = update_members_async(list_id=list_id,
-                                        member_list=member_list,
-                                        callback=callback())
+        responses = update_members_async(list_id=list_id,
+                                         member_list=member_list,
+                                         callback=callback())
 
         # check if correct requests have been made
         request1_data = async_request_mock.requests[(f'POST',
@@ -349,12 +374,13 @@ def test_update_members_async_callback(expected_member_batches):
         request2_data = async_request_mock.requests[(f'POST',
                                                      f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
 
-        assert loads(request1_data) == batch1
-        assert loads(request2_data) == batch2
+        request_data = [loads(request1_data), loads(request2_data)]
+        assert batch1 in request_data
+        assert batch2 in request_data
 
         # check responses
-        assert response[0] == batch1
-        assert response[1] == batch2
+        assert batch1 in responses
+        assert batch2 in responses
 
         assert callback_status == [
             {'total': 1000, 'completed': 0, 'status': None},
