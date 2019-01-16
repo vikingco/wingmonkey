@@ -1,4 +1,4 @@
-[![Coverage Status](https://coveralls.io/repos/github/vikingco/wingmonkey/badge.svg)](https://coveralls.io/github/vikingco/wingmonkey)
+[![Coverage Status](https://coveralls.io/repos/github/vikingco/wingmonkey/badge.svg?branch=master)](https://coveralls.io/github/vikingco/wingmonkey?branch=master)
 [![CI Status](https://travis-ci.org/vikingco/wingmonkey.svg?branch=master)](https://travis-ci.org/vikingco/wingmonkey)
 
 # wingmonkey
