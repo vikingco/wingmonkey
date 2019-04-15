@@ -114,10 +114,10 @@ def test_get_all_members_async_exception(expected_members):
     api_key = '1234-tst1'
 
     with Mocker() as request_mock:
-            request_mock.get(f'{api_endpoint}/lists/{expected_members["list_id"]}/members', status_code=400)
+        request_mock.get(f'{api_endpoint}/lists/{expected_members["list_id"]}/members', status_code=400)
 
-            assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1, sleepy_time=0,
-                                             api_endpoint=api_endpoint, api_key=api_key)
+        assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1, sleepy_time=0,
+                                         api_endpoint=api_endpoint, api_key=api_key)
 
 
 def test_get_all_members_async_timeout_exception(caplog, expected_members):
@@ -127,12 +127,12 @@ def test_get_all_members_async_timeout_exception(caplog, expected_members):
 
     with patch('wingmonkey.async_operations._get_all_members_async', side_effect=TimeoutError):
         with Mocker() as request_mock:
-                request_mock.get(f'{api_endpoint}/lists/{expected_members["list_id"]}/members', status_code=400)
+            request_mock.get(f'{api_endpoint}/lists/{expected_members["list_id"]}/members', status_code=400)
 
-                assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1,
-                                                 sleepy_time=0, api_endpoint=api_endpoint, api_key=api_key)
+            assert not get_all_members_async(list_id=expected_members["list_id"], max_count=10, retry=1,
+                                             sleepy_time=0, api_endpoint=api_endpoint, api_key=api_key)
 
-                assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
+            assert f'get_all_members_async for list {expected_members["list_id"]} failed. Error' in caplog.text
 
 
 def test_get_all_members_async_exception_in_response(caplog, expected_members):
