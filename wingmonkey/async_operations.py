@@ -140,7 +140,7 @@ async def _update_members_async(list_id, member_list, status_only, max_chunks, r
 
             requests.append(dict(func=session.async_post,
                                  kwargs=(dict(url=f'{path}',
-                                              json=member_batch_request_serializer.dumps(batch_request).data)),
+                                              json=member_batch_request_serializer.dumps(batch_request))),
                                  retry=retry, batch_size=batch_size))
 
         return await wait_for(_get_responses_async(requests, max_concurrency=max_chunks, status_only=status_only,
@@ -222,7 +222,7 @@ async def _batch_update_members_async(list_id, member_list, max_chunks, batch_op
             path = f'lists/{list_id}'
             for batch in batches:
                 operations.append(BatchOperation(method='POST', path=path,
-                                                 body=MemberBatchRequestSerializer(session=session).dumps(batch).data))
+                                                 body=MemberBatchRequestSerializer(session=session).dumps(batch)))
 
             batch_operation_collection_serializer = BatchOperationCollectionSerializer(session=session)
 
@@ -230,7 +230,7 @@ async def _batch_update_members_async(list_id, member_list, max_chunks, batch_op
 
             requests.append(dict(func=session.async_post,
                                  kwargs=(dict(url=f'batches',
-                                              json=batch_operation_collection_serializer.dumps(batch_operations).data)),
+                                              json=batch_operation_collection_serializer.dumps(batch_operations))),
                                  retry=retry))
 
         return await _get_responses_async(requests, max_concurrency=max_chunks)
@@ -250,7 +250,7 @@ def batch_update_members_async(list_id, member_list, max_chunks=9, members_per_c
             batch_operation_resources = []
             for response in responses:
                 if isinstance(response, Exception):
-                    logger.warning('wingmonkey.get_all_members_async chunk raised exception: %s', response)
+                    logger.warning('wingmonkey.batch_update_members_async chunk raised exception: %s', response)
                     continue
                 if response:
                     batch_operation_resources.append(BatchOperationResource(**response))

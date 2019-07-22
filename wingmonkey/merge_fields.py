@@ -1,4 +1,4 @@
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 
 from wingmonkey.enums import MergeFieldTypes
 from wingmonkey.mailchimp_session import MailChimpSessionSchema
@@ -7,19 +7,21 @@ from wingmonkey.lists import get_all_lists
 
 
 class MergeFieldSerializer(MailChimpSessionSchema):
+    class Meta:
+        unknown = EXCLUDE
 
     merge_id = fields.Int()
     tag = fields.Str()
     name = fields.Str()
     type = fields.Str()
     required = fields.Boolean()
-    default_value = fields.Str()
+    default_value = fields.Str(missing=None)
     public = fields.Boolean()
     display_order = fields.Int()
-    options = fields.Dict()
-    help_text = fields.Str()
+    options = fields.Dict(missing=None)
+    help_text = fields.Str(missing=None)
     list_id = fields.Str()
-    _links = fields.Dict()
+    _links = fields.Dict(missing=None)
 
     def create(self, list_id, merge_field_instance):
         """
@@ -27,14 +29,9 @@ class MergeFieldSerializer(MailChimpSessionSchema):
         :param merge_field_instance: MergeField
         :return: MergeField instance created on server
         """
-        self.exclude = merge_field_instance.empty_fields
-        self._update_fields()
-
-        response = self.session.post(f'lists/{list_id}/merge-fields', json=self.dumps(merge_field_instance).data)
-        self.exclude = ()
-        self._update_fields()
+        response = self.session.post(f'lists/{list_id}/merge-fields', json=self.dumps(merge_field_instance))
         if response:
-            return MergeField(**self.load(response.json()).data)
+            return MergeField(**self.load(response.json()))
 
     def read(self, list_id, merge_id):
         """
@@ -43,7 +40,7 @@ class MergeFieldSerializer(MailChimpSessionSchema):
         :return: MergeField instance found on server
         """
         response = self.session.get(f'lists/{list_id}/merge-fields/{merge_id}')
-        return MergeField(**self.load(response.json()).data)
+        return MergeField(**self.load(response.json()))
 
     def update(self, list_id, merge_field_instance):
         """
@@ -51,15 +48,11 @@ class MergeFieldSerializer(MailChimpSessionSchema):
         :param merge_field_instance: MergeField
         :return: updated MergeField instance on server
         """
-        self.exclude = merge_field_instance.empty_fields
-        self._update_fields()
-
         response = self.session.patch(f'lists/{list_id}/merge-fields/{merge_field_instance.merge_id}',
-                                      json=self.dumps(merge_field_instance).data)
-        self.exclude = ()
-        self._update_fields()
+                                      json=self.dumps(merge_field_instance))
+
         if response:
-            return MergeField(**self.load(response.json()).data)
+            return MergeField(**self.load(response.json()))
 
     def delete(self, list_id, merge_id):
         """
@@ -97,7 +90,7 @@ class MergeFieldCollectionSerializer(MailChimpSessionSchema):
     merge_fields = fields.List(cls_or_instance=fields.Nested(MergeFieldSerializer))
     list_id = fields.Str()
     total_items = fields.Int()
-    _links = fields.Dict()
+    _links = fields.Dict(missing=None)
 
     def read(self, list_id):
         """
@@ -107,7 +100,7 @@ class MergeFieldCollectionSerializer(MailChimpSessionSchema):
         count = self._get_total_items_count(list_id)
 
         response = self.session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=count))
-        return MergeFieldCollection(**self.load(response.json()).data)
+        return MergeFieldCollection(**self.load(response.json()))
 
     def _get_total_items_count(self, list_id):
         """
@@ -118,7 +111,7 @@ class MergeFieldCollectionSerializer(MailChimpSessionSchema):
 
         response = self.session.get(f'lists/{list_id}/merge-fields', query_parameters=dict(count=1,
                                                                                            fields=['total_items']))
-        return MergeFieldCollection(**self.load(response.json()).data).total_items
+        return MergeFieldCollection(**self.load(response.json())).total_items
 
 
 class MergeFieldCollection(MailChimpData):

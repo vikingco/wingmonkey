@@ -61,8 +61,12 @@ def expected_lists():
                     'web_id': 'VRTGNT99',
                     'name': 'Gordon Freeman',
                     'notify_on_subscribe': '',
+                    'modules': None,
+                    'subscribe_url_short': None,
+                    'subscribe_url_long': None,
                     'email_type_option': False,
                     'permission_reminder': 'You get this mail because you are a member of BMRF',
+                    'stats': None,
                     'campaign_defaults': {
                                           'from_name': 'Black Mesa',
                                           'subject': '',
@@ -80,7 +84,12 @@ def expected_lists():
                                 'address2': ''
                                },
                     'visibility': VISIBILITY_PRIVATE,
-                    'use_archive_bar': False}],
+                    'date_created': None,
+                    'list_rating': None,
+                    'use_archive_bar': False,
+                    'beamer_address': None,
+                    '_links': None,
+                }],
             'total_items': 1,
             }
 

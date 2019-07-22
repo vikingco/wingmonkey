@@ -13,17 +13,17 @@ class BatchOperationResourceSerializer(MailChimpSessionSchema):
     id = fields.Str()
     status = fields.Str()
     total_operations = fields.Int()
-    finished_operations = fields.Int()
-    errored_operations = fields.Int()
-    submitted_at = fields.DateTime()
-    completed_at = fields.DateTime()
-    response_body_url = fields.Str()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    finished_operations = fields.Int(missing=None)
+    errored_operations = fields.Int(missing=None)
+    submitted_at = fields.DateTime(missing=None)
+    completed_at = fields.DateTime(missing=None)
+    response_body_url = fields.Str(missing=None)
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def read(self, batch_id):
         response = self.session.get(f'batches/{batch_id}')
         return BatchOperationResource(
-            **BatchOperationResourceSerializer(session=self.session).load(response.json()).data)
+            **BatchOperationResourceSerializer(session=self.session).load(response.json()))
 
     def delete(self, batch_id):
         if self.session.delete(f'batches/{batch_id}'):
@@ -67,7 +67,7 @@ class BatchOperationResourceCollectionSerializer(MailChimpSessionSchema):
                 'batches', query_parameters=dict(count=chunk_size, offset=chunk_size * i)).json()['batches']
             )
 
-        return BatchOperationResourceCollection(**self.load(response).data)
+        return BatchOperationResourceCollection(**self.load(response))
 
 
 class BatchOperationResourceCollection(MailChimpData):
@@ -124,7 +124,6 @@ def _batch_members_operation(list_id, members_list, method, session=None):
         # limit serializer to fields that are accepted as PATCH parameters
         member_serializer.only = ('email_address', 'email_type', 'status', 'merge_fields', 'interests', 'language',
                                   'vip', 'location')
-        member_serializer._update_fields()
 
     for member in members_list:
 
@@ -132,19 +131,18 @@ def _batch_members_operation(list_id, members_list, method, session=None):
 
         if method == HttpMethods.POST:
             member_serializer.exclude = member.empty_fields
-            member_serializer._update_fields()
 
         elif method == HttpMethods.PATCH:
             # update requests need an existing member id in the url
             path = f'lists/{list_id}/members/{member.id}'
 
-        operations.append(BatchOperation(method=method, path=path, body=member_serializer.dumps(member).data))
+        operations.append(BatchOperation(method=method, path=path, body=member_serializer.dumps(member)))
 
     batch_operations = BatchOperationCollection(operations)
     with MailChimpSession() as session:
-        response = session.post('batches', json=batch_operations_serializer.dumps(batch_operations).data)
+        response = session.post('batches', json=batch_operations_serializer.dumps(batch_operations))
 
-    return BatchOperationResource(**batch_operation_resource_serializer.load(response.json()).data)
+    return BatchOperationResource(**batch_operation_resource_serializer.load(response.json()))
 
 
 def batch_add_members(list_id, members_list, session=None):

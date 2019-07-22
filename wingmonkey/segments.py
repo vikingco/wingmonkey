@@ -1,4 +1,4 @@
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 
 from wingmonkey.enums import SegmentFieldTypes
 from wingmonkey.mailchimp_session import MailChimpSessionSchema
@@ -6,6 +6,8 @@ from wingmonkey.mailchimp_base import MailChimpData
 
 
 class SegmentSerializer(MailChimpSessionSchema):
+    class Meta:
+        unknown = EXCLUDE
 
     id = fields.Int()
     name = fields.Str()
@@ -15,7 +17,7 @@ class SegmentSerializer(MailChimpSessionSchema):
     updated_at = fields.DateTime()
     options = fields.Dict()
     list_id = fields.Str()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def create(self, list_id, segment_instance):
         """
@@ -23,14 +25,9 @@ class SegmentSerializer(MailChimpSessionSchema):
         :param segment_instance : Segment : segment to be created on server
         :return: Segment instance
         """
-        self.exclude = segment_instance.empty_fields
-        self._update_fields()
-
-        response = self.session.post(f'lists/{list_id}/segments', json=self.dumps(segment_instance).data)
-        self.exclude = ()
-        self._update_fields()
+        response = self.session.post(f'lists/{list_id}/segments', json=self.dumps(segment_instance))
         if response:
-            return Segment(**self.load(response.json()).data)
+            return Segment(**self.load(response.json()))
 
     def read(self, list_id, segment_id):
         """
@@ -40,7 +37,7 @@ class SegmentSerializer(MailChimpSessionSchema):
         """
 
         response = self.session.get(f'lists/{list_id}/segments/{segment_id}')
-        return Segment(**self.load(response.json()).data)
+        return Segment(**self.load(response.json()))
 
     def update(self, list_id, segment_instance):
         """
@@ -49,14 +46,12 @@ class SegmentSerializer(MailChimpSessionSchema):
         :return: updated Segment instance on server
         """
         self.only = ('name', 'options')
-        self._update_fields()
 
         response = self.session.patch(f'lists/{list_id}/segments/{segment_instance.id}',
-                                      json=self.dumps(segment_instance).data)
+                                      json=self.dumps(segment_instance))
         self.only = ()
-        self._update_fields()
         if response:
-            return Segment(**self.load(response.json()).data)
+            return Segment(**self.load(response.json()))
 
     def delete(self, list_id, segment_id):
         """
@@ -89,7 +84,7 @@ class SegmentCollectionSerializer(MailChimpSessionSchema):
     segments = fields.List(cls_or_instance=fields.Nested(SegmentSerializer))
     list_id = fields.Str()
     total_items = fields.Int()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def read(self, list_id):
         """
@@ -98,7 +93,7 @@ class SegmentCollectionSerializer(MailChimpSessionSchema):
         """
 
         response = self.session.get(f'lists/{list_id}/segments')
-        return SegmentCollection(**self.load(response.json()).data)
+        return SegmentCollection(**self.load(response.json()))
 
 
 class SegmentCollection(MailChimpData):

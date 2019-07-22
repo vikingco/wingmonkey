@@ -9,6 +9,7 @@ from asyncio import TimeoutError
 from unittest.mock import patch
 from asynctest.mock import patch as async_patch
 from logging import INFO
+from yarl import URL
 
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.factories import MemberFactory
@@ -20,10 +21,10 @@ from wingmonkey.mailchimp_session import MailChimpSession
 @fixture()
 def expected_members():
     return {
-        'members': [MemberSerializer().dumps(MemberFactory(list_id='ListyMcListface')).data for _ in range(100)],
+        'members': [MemberSerializer().dumps(MemberFactory(list_id='ListyMcListface')) for _ in range(100)],
         'list_id': 'ListyMcListface',
         'total_items': 100,
-        '_links': None
+        '_links': ['http://linkymclinkface']
     }
 
 
@@ -33,12 +34,12 @@ def expected_member_batches():
 
     batch1 = {
         'members': [loads(MemberSerializer(only=('email_address', 'status', 'merge_fields', 'language'))
-                    .dumps(member).data) for member in members[0:500]],
+                    .dumps(member)) for member in members[0:500]],
         'update_existing': True
     }
     batch2 = {
         'members': [loads(MemberSerializer(only=('email_address', 'status', 'merge_fields', 'language'))
-                    .dumps(member).data) for member in members[500:1000]],
+                    .dumps(member)) for member in members[500:1000]],
         'update_existing': True
 
     }
@@ -52,10 +53,10 @@ def expected_members_with_custom_session():
     session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
     return {
         'members': [MemberSerializer(session=session).dumps(MemberFactory(
-            list_id='ListyMcListface')).data for _ in range(100)],
+            list_id='ListyMcListface')) for _ in range(100)],
         'list_id': 'ListyMcListface',
         'total_items': 100,
-        '_links': None
+        '_links': ['http://linkymclinkface']
     }
 
 
@@ -96,8 +97,9 @@ def test_get_all_members_async(expected_members):
         # We will use max_count=10 which means 10 (100/10) async get tasks should be executed in this case
         chunks = _create_chunks(expected_members, chunk_size=10)
         for i in range(10):
-            async_request_mock.get(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members',
-                                   body=dumps(chunks[i]))
+            async_request_mock.get(
+                f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_members["list_id"]}/members?count=10&offset={i * 10}',
+                payload=chunks[i], status=200)
 
         response = get_all_members_async(list_id=expected_members["list_id"], max_count=10)
         for member in expected_members['members']:
@@ -185,8 +187,9 @@ def test_get_all_members_async_with_custom_api_settings(expected_members_with_cu
         # We will use max_count=10 which means 10 (100/10) async get tasks should be executed in this case
         chunks = _create_chunks(expected_members_with_custom_session, chunk_size=10)
         for i in range(10):
-            async_request_mock.get(f'{api_endpoint}/lists/{expected_members_with_custom_session["list_id"]}/members',
-                                   body=dumps(chunks[i]))
+            async_request_mock.get(
+                f'{api_endpoint}/lists/{expected_members_with_custom_session["list_id"]}/members'
+                f'?count=10&offset={i * 10}', payload=chunks[i], status=200)
 
         response = get_all_members_async(list_id=expected_members_with_custom_session["list_id"], max_count=10,
                                          api_endpoint=api_endpoint,
@@ -235,10 +238,10 @@ def test_update_members_async(expected_member_batches):
                                          member_list=member_list)
 
         # check if correct requests have been made
-        request1_data = async_request_mock.requests[(f'POST',
-                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][0][1]['data']
-        request2_data = async_request_mock.requests[(f'POST',
-                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
+        request1_data = async_request_mock.requests[
+            (f'POST', URL(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}'))][0][1]['data']
+        request2_data = async_request_mock.requests[
+            (f'POST', URL(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}'))][1][1]['data']
 
         request_data = [loads(request1_data), loads(request2_data)]
 
@@ -267,10 +270,10 @@ def test_update_members_async_with_custom_api_settings(expected_member_batches):
                                          api_endpoint=api_endpoint, api_key=api_key)
 
         # check if correct requests have been made
-        request1_data = async_request_mock.requests[(f'POST',
-                                                     f'{api_endpoint}/lists/{list_id}')][0][1]['data']
-        request2_data = async_request_mock.requests[(f'POST',
-                                                     f'{api_endpoint}/lists/{list_id}')][1][1]['data']
+        request1_data = async_request_mock.requests[
+            (f'POST', URL(f'{api_endpoint}/lists/{list_id}'))][0][1]['data']
+        request2_data = async_request_mock.requests[
+            (f'POST', URL(f'{api_endpoint}/lists/{list_id}'))][1][1]['data']
 
         request_data = [loads(request1_data), loads(request2_data)]
 
@@ -297,10 +300,10 @@ def test_update_members_async_status_only(expected_member_batches):
                                          status_only=True)
 
         # check if correct requests have been made
-        request1_data = async_request_mock.requests[(f'POST',
-                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][0][1]['data']
-        request2_data = async_request_mock.requests[(f'POST',
-                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
+        request1_data = async_request_mock.requests[
+            (f'POST', URL(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}'))][0][1]['data']
+        request2_data = async_request_mock.requests[
+            (f'POST', URL(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}'))][1][1]['data']
 
         request_data = [loads(request1_data), loads(request2_data)]
 
@@ -369,10 +372,10 @@ def test_update_members_async_callback(expected_member_batches):
                                          callback=callback())
 
         # check if correct requests have been made
-        request1_data = async_request_mock.requests[(f'POST',
-                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][0][1]['data']
-        request2_data = async_request_mock.requests[(f'POST',
-                                                     f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}')][1][1]['data']
+        request1_data = async_request_mock.requests[
+            (f'POST', URL(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}'))][0][1]['data']
+        request2_data = async_request_mock.requests[
+            (f'POST', URL(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{list_id}'))][1][1]['data']
 
         request_data = [loads(request1_data), loads(request2_data)]
         assert batch1 in request_data

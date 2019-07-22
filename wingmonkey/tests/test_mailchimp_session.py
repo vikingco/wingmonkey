@@ -228,9 +228,12 @@ def test_mailchimp_session_schema_nested():
     api_key = '1234-tst1'
     session = MailChimpSession(api_endpoint=api_endpoint, api_key=api_key)
 
+    class ChildSerializer(MailChimpSessionSchema):
+        stuff = fields.Str()
+
     class ParentSerializer(MailChimpSessionSchema):
-        nested_serializer = fields.Nested(MailChimpSessionSchema)
+        nested_serializer = fields.Nested(ChildSerializer)
 
     parent_serializer = ParentSerializer(session=session)
-    json = dumps(dict(nested_serializer=''))
-    parent_serializer.load(json)
+    json = {'nested_serializer': {'stuff': 'test'}}
+    assert parent_serializer.load(json)

@@ -1,7 +1,7 @@
 from hashlib import md5
 
 from logging import getLogger
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 
 from wingmonkey.mailchimp_session import ClientException, MailChimpSessionSchema
 from wingmonkey.mailchimp_base import MailChimpData
@@ -16,30 +16,33 @@ class MemberSerializer(MailChimpSessionSchema):
     inherits from marshmallow Schema https://marshmallow.readthedocs.io/en/latest/quickstart.html#declaring-schemas
     """
 
+    class Meta:
+        unknown = EXCLUDE
+
     id = fields.Str()
     email_address = fields.Str()
-    unique_email_id = fields.Email()
+    unique_email_id = fields.Email(missing=None)
     email_type = fields.Str()
     status = fields.Str()
-    unsubscribe_reason = fields.Str()
-    unsubscribe_campaign_id = fields.Str()
-    unsubscribe_campaign_title = fields.Str()
+    unsubscribe_reason = fields.Str(missing=None)
+    unsubscribe_campaign_id = fields.Str(missing=None)
+    unsubscribe_campaign_title = fields.Str(missing=None)
     merge_fields = fields.Dict()
-    interests = fields.Dict()
+    interests = fields.Dict(missing=None)
     stats = fields.Dict()
     ip_signup = fields.Str()
     timestamp_signup = fields.Str()
     ip_opt = fields.Str()
-    timestamp_opt = fields.Str()
-    member_rating = fields.Int()
-    last_changed = fields.Str()
+    timestamp_opt = fields.Str(missing=None)
+    member_rating = fields.Int(missing=None)
+    last_changed = fields.Str(missing=None)
     language = fields.Str()
-    vip = fields.Boolean()
+    vip = fields.Boolean(missing=None)
     email_client = fields.Str()
     location = fields.Dict()
-    last_note = fields.Dict()
+    last_note = fields.Dict(missing=None)
     list_id = fields.Str()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def create(self, list_id, instance):
         """
@@ -47,14 +50,9 @@ class MemberSerializer(MailChimpSessionSchema):
         :param instance: Member:  instance to be created on server
         :return: Member:  instance created on mailchimp server
         """
-        self.exclude = instance.empty_fields
-        self._update_fields()
-
-        response = self.session.post(f'lists/{list_id}/members', json=self.dumps(instance).data)
-        self.exclude = ()
-        self._update_fields()
+        response = self.session.post(f'lists/{list_id}/members', json=self.dumps(instance))
         if response:
-            return Member(**self.load(response.json()).data)
+            return Member(**self.load(response.json()))
 
     def read(self, list_id, member_id=None, query=None):
         """
@@ -73,7 +71,7 @@ class MemberSerializer(MailChimpSessionSchema):
                 return
 
         response = self.session.get(f'lists/{list_id}/members/{member_id}', query_parameters=query)
-        return Member(**self.load(response.json()).data)
+        return Member(**self.load(response.json()))
 
     def update(self, list_id, instance, query=None):
         """
@@ -85,14 +83,12 @@ class MemberSerializer(MailChimpSessionSchema):
         # limit serializer to fields that are accepted as PATCH parameters
         self.only = ('email_address', 'email_type', 'status', 'merge_fields', 'interests', 'language', 'vip',
                      'location')
-        self._update_fields()
 
-        response = self.session.patch(f'lists/{list_id}/members/{instance.id}', json=self.dumps(instance).data,
+        response = self.session.patch(f'lists/{list_id}/members/{instance.id}', json=self.dumps(instance),
                                       query_parameters=query)
         self.only = ()
-        self._update_fields()
         if response:
-            return Member(**self.load(response.json()).data)
+            return Member(**self.load(response.json()))
 
     def delete(self, list_id, member_id):
         if self.session.delete(f'lists/{list_id}/members/{member_id}'):
@@ -153,7 +149,7 @@ class MemberCollectionSerializer(MailChimpSessionSchema):
     members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
     list_id = fields.Str()
     total_items = fields.Int()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def read(self, list_id, query=None):
         """
@@ -162,7 +158,7 @@ class MemberCollectionSerializer(MailChimpSessionSchema):
         :return: Members instance
         """
         response = self.session.get(f'lists/{list_id}/members', query_parameters=query)
-        return MemberCollection(**self.load(response.json()).data)
+        return MemberCollection(**self.load(response.json()))
 
 
 class MemberCollection(MailChimpData):
@@ -183,10 +179,10 @@ class MemberBatchRequestSerializer(MailChimpSessionSchema):
 
     def create(self, list_id, member_batch_request_instance):
 
-        response = self.session.post(f'lists/{list_id}', json=self.dumps(member_batch_request_instance).data)
+        response = self.session.post(f'lists/{list_id}', json=self.dumps(member_batch_request_instance))
         if response:
             return MemberBatchResponse(
-                **MemberBatchResponseSerializer(session=self.session).load(response.json()).data)
+                **MemberBatchResponseSerializer(session=self.session).load(response.json()))
 
 
 class MemberBatchRequest(MailChimpData):
@@ -208,12 +204,12 @@ class MemberBatchRequest(MailChimpData):
 class MemberBatchResponseSerializer(MailChimpSessionSchema):
 
     new_members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
-    updated_members = fields.List(cls_or_instance=fields.Nested(MemberSerializer))
-    errors = fields.List(cls_or_instance=fields.Dict())
+    updated_members = fields.List(cls_or_instance=fields.Nested(MemberSerializer), missing=None)
+    errors = fields.List(cls_or_instance=fields.Dict(), missing=None)
     total_created = fields.Int()
     total_updated = fields.Int()
     error_count = fields.Int()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
 
 class MemberBatchResponse(MailChimpData):
@@ -236,12 +232,12 @@ class MemberActivitySerializer(MailChimpSessionSchema):
     email_id = fields.Str()
     list_id = fields.Str()
     total_items = fields.Int()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def read(self, list_id, email_address, query=None):
         subscriber_hash = generate_member_id(email_address)
         response = self.session.get(f'lists/{list_id}/members/{subscriber_hash}/activity', query_parameters=query)
-        return MemberActivity(**self.load(response.json()).data)
+        return MemberActivity(**self.load(response.json()))
 
 
 class MemberActivity(MailChimpData):

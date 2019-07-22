@@ -35,7 +35,7 @@ class MailChimpSession(object):
             set_event_loop(loop)
             self.loop = loop
 
-        connector = TCPConnector(loop=self.loop, verify_ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
+        connector = TCPConnector(loop=self.loop, ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
         self.async_session = ClientSession(connector=connector)
 
     def __del__(self):
@@ -120,12 +120,12 @@ class MailChimpSession(object):
         except web_exceptions.HTTPError:
             raise ClientException(response.status_code, response.content.read_nowait())
         except client_exceptions.ClientResponseError as e:
-            raise ClientException(e.code, response.content.read_nowait())
-        except web_exceptions.HTTPRequestTimeout:
+            raise ClientException(e.status)
+        except client_exceptions.ServerTimeoutError:
             raise ClientException(504, 'Time out')
         except web_exceptions.HTTPServiceUnavailable:
             raise ClientException(503, 'Can not connect to server')
-        except (TimeoutError, client_exceptions.TimeoutError):
+        except (TimeoutError, client_exceptions.ServerTimeoutError):
             raise ClientException(500, 'Asyncio timeout error')
         except CancelledError:
             raise ClientException(500, 'Asyncio future cancelled error')
@@ -150,9 +150,12 @@ class ClientException(Exception):
     """
     Exception indicating an unexpected http response was received. (not 2xx and not 404)
     """
-    def __init__(self, http_code, response_body):
+    def __init__(self, http_code, response_body=None):
         self.status = http_code
-        self.response_body = response_body if len(response_body) < 200 else f'{response_body[:200]}...TRUNCATED'
+        if response_body:
+            self.response_body = response_body if len(response_body) < 200 else f'{response_body[:200]}...TRUNCATED'
+        else:
+            self.response_body = None
 
     def __repr__(self):
         return f'{self.status}: {self.response_body}'

@@ -18,7 +18,7 @@ class MailChimpAccountInfoSerializer(MailChimpSessionSchema):
 
     def read(self):
         response = self.session.get()
-        return MailChimpAccountInfo(**self.load(response.json()).data)
+        return MailChimpAccountInfo(**self.load(response.json()))
 
 
 class MailChimpAccountInfo(MailChimpData):

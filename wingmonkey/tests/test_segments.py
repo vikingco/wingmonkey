@@ -20,8 +20,8 @@ def expected_segment():
         'name': 'Coffee Addicts',
         'member_count': 99,
         'type': SegmentFieldTypes.SAVED,
-        'created_at': datetime.strftime(datetime(2017, 7, 7), '%Y-%m-%d %H:%M:%S'),
-        'updated_at': datetime.strftime(datetime(2017, 7, 17), '%Y-%m-%d %H:%M:%S'),
+        'created_at': '2017-07-07T00:00:00',
+        'updated_at': '2017-07-17T00:00:00',
         'options': dict(
             conditions=[dict(condition_type='TextMerge', field='COFVEVE', op='blank_not')],
             match='all'
@@ -29,6 +29,24 @@ def expected_segment():
         'list_id': 'OCD123',
         '_links': None
     }
+
+
+@fixture
+def existing_segment():
+    return Segment(
+        id=1234,
+        name='Coffee Addicts',
+        member_count=99,
+        type=SegmentFieldTypes.SAVED,
+        created_at=datetime.strptime('2017-07-07T00:00:00', '%Y-%m-%dT%H:%M:%S'),
+        updated_at=datetime.strptime('2017-07-17T00:00:00', '%Y-%m-%dT%H:%M:%S'),
+        options=dict(
+            conditions=[dict(condition_type='TextMerge', field='COFVEVE', op='blank_not')],
+            match='all'
+        ),
+        list_id='OCD123',
+        _links=None
+    )
 
 
 @fixture
@@ -54,8 +72,8 @@ def compare_result(segment, expected=None):
     assert segment.name == expected['name']
     assert segment.member_count == expected['member_count']
     assert segment.type == expected['type']
-    assert segment.created_at == datetime.strptime(expected['created_at'], '%Y-%m-%d %H:%M:%S')
-    assert segment.updated_at == datetime.strptime(expected['updated_at'], '%Y-%m-%d %H:%M:%S')
+    assert segment.created_at == datetime.strptime(expected['created_at'], '%Y-%m-%dT%H:%M:%S')
+    assert segment.updated_at == datetime.strptime(expected['updated_at'], '%Y-%m-%dT%H:%M:%S')
     assert segment.options == expected['options']
     assert segment.list_id == expected['list_id']
     assert segment._links == expected['_links']
@@ -63,12 +81,11 @@ def compare_result(segment, expected=None):
     return True
 
 
-def test_segment_create(expected_segment):
-    segment = Segment(**expected_segment)
+def test_segment_create(existing_segment, expected_segment):
     with Mocker() as request_mock:
         request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments',
                           text=dumps(expected_segment))
-        assert compare_result(segment_serializer.create(segment.list_id, segment), expected_segment)
+        assert compare_result(segment_serializer.create(existing_segment.list_id, existing_segment), expected_segment)
 
 
 def test_segment_read(expected_segment):
@@ -80,13 +97,12 @@ def test_segment_read(expected_segment):
         assert compare_result(segment_serializer.read(segment.list_id, segment.id), expected_segment)
 
 
-def test_segment_update(expected_segment):
-    segment = Segment(**expected_segment)
+def test_segment_update(existing_segment, expected_segment):
     with Mocker() as request_mock:
         request_mock.patch(
             f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_segment["list_id"]}/segments/{expected_segment["id"]}',
             text=dumps(expected_segment))
-        assert compare_result(segment_serializer.update(segment.list_id, segment), expected_segment)
+        assert compare_result(segment_serializer.update(existing_segment.list_id, existing_segment), expected_segment)
 
 
 def test_segment_delete(expected_segment):

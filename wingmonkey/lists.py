@@ -1,5 +1,5 @@
 from logging import getLogger
-from marshmallow import fields
+from marshmallow import fields, EXCLUDE
 
 from wingmonkey.mailchimp_session import MailChimpSessionSchema
 from wingmonkey.mailchimp_base import MailChimpData
@@ -15,6 +15,8 @@ class ListSerializer(MailChimpSessionSchema):
     class representing mailing list schema in mailchimp
     inherits from marshmallow Schema https://marshmallow.readthedocs.io/en/latest/quickstart.html#declaring-schemas
     """
+    class Meta:
+        unknown = EXCLUDE
 
     id = fields.Str()
     web_id = fields.Str()
@@ -25,33 +27,25 @@ class ListSerializer(MailChimpSessionSchema):
     campaign_defaults = fields.Dict(default=CAMPAIGN_DEFAULTS)
     notify_on_subscribe = fields.Str()
     notify_on_unsubscribe = fields.Str()
-    date_created = fields.DateTime()
-    list_rating = fields.Str()
+    date_created = fields.DateTime(missing=None)
+    list_rating = fields.Str(missing=None)
     email_type_option = fields.Boolean(default=False)
-    subscribe_url_short = fields.Str()
-    subscribe_url_long = fields.Str()
-    beamer_address = fields.Str()
+    subscribe_url_short = fields.Str(missing=None)
+    subscribe_url_long = fields.Str(missing=None)
+    beamer_address = fields.Str(missing=None)
     visibility = fields.Str(default=VISIBILITY_PRIVATE)
-    modules = fields.Str()
-    stats = fields.Dict()
-    _links = fields.List(cls_or_instance=fields.Dict())
+    modules = fields.Str(missing=None)
+    stats = fields.Dict(missing=None)
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def create(self, instance):
         """
         create list on mailchimp server
         :return: MailChimpList instance
         """
-        # Removing empty values before serialization (exclude option on schema) is useful when doing a post call
-        # as we can not know the correct values of certain keys yet before creation on the API side( eg id ).
-        # It also prevents unwanted overwriting.
-        self.exclude = instance.empty_fields
-        self._update_fields()
-
-        response = self.session.post('lists', json=self.dumps(instance).data)
-        self.exclude = ()
-        self._update_fields()
+        response = self.session.post('lists', json=self.dumps(instance))
         if response:
-            return List(**self.load(response.json()).data)
+            return List(**self.load(response.json()))
 
     def read(self, list_id=None):
         """
@@ -68,7 +62,7 @@ class ListSerializer(MailChimpSessionSchema):
                 return
 
         response = self.session.get(f'lists/{list_id}')
-        return List(**self.load(response.json()).data)
+        return List(**self.load(response.json()))
 
     def update(self, instance):
         """
@@ -77,13 +71,11 @@ class ListSerializer(MailChimpSessionSchema):
         """
         self.only = ('name', 'contact', 'permission_reminder', 'use_archive_bar', 'campaign_defaults',
                      'notify_on_subscribe', 'email_type_option', 'visibility')
-        self._update_fields()
 
-        response = self.session.patch(f'lists/{instance.id}', json=self.dumps(instance).data)
+        response = self.session.patch(f'lists/{instance.id}', json=self.dumps(instance))
         self.only = ()
-        self._update_fields()
         if response:
-            return List(**self.load(response.json()).data)
+            return List(**self.load(response.json()))
 
     def delete(self, instance):
         """
@@ -136,7 +128,7 @@ class ListCollectionSerializer(MailChimpSessionSchema):
         if extra_parameters:
             query_parameters.update(extra_parameters)
         response = self.session.get('lists', query_parameters=query_parameters)
-        return ListCollection(**self.load(response.json()).data)
+        return ListCollection(**self.load(response.json()))
 
 
 class ListCollection(MailChimpData):
