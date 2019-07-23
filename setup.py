@@ -25,7 +25,7 @@ for req in requirements_test_file:
 
 setup(
     name='wingmonkey',
-    version='0.1.21',
+    version='0.2.0',
     url='https://github.com/vikingco/wingmonkey',
     license='BSD',
     author='Jonas Steur',
@@ -42,6 +42,7 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Operating System :: OS Independent',
         'Environment :: Web Environment',
     ],
