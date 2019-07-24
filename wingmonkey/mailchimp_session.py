@@ -28,21 +28,13 @@ class MailChimpSession(object):
         # regular requests session
         self.session = Session()
         # async aiohttp session
-        try:
-            self.loop = get_event_loop()
-        except RuntimeError:
-            loop = new_event_loop()
-            set_event_loop(loop)
-            self.loop = loop
-
         self.connector = TCPConnector(loop=self.loop, ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
         self.async_session = ClientSession(connector=self.connector)
 
     def __del__(self):
         try:
             self.session.close()
-            loop = get_event_loop()
-            loop.run_until_complete(self.async_session.close())
+            self.loop.run_until_complete(self.async_session.close())
         except Exception as e:
             logger.warning(f'MailChimpSession could not be closed cleanly: {e} ')
 
@@ -51,6 +43,15 @@ class MailChimpSession(object):
 
     def __exit__(self, exc_type, exc_value, traceback):
         self.__del__()
+
+    @property
+    def loop(self):
+        try:
+            return get_event_loop()
+        except RuntimeError:
+            loop = new_event_loop()
+            set_event_loop(loop)
+            return loop
 
     def close(self):
         self.__del__()
