@@ -35,13 +35,14 @@ class MailChimpSession(object):
             set_event_loop(loop)
             self.loop = loop
 
-        connector = TCPConnector(loop=self.loop, ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
-        self.async_session = ClientSession(connector=connector)
+        self.connector = TCPConnector(loop=self.loop, ssl=False, limit=MAILCHIMP_MAX_CONNECTIONS)
+        self.async_session = ClientSession(connector=self.connector)
 
     def __del__(self):
         try:
             self.session.close()
-            self.async_session.close()
+            loop = get_event_loop()
+            loop.run_until_complete(self.async_session.close())
         except Exception as e:
             logger.warning(f'MailChimpSession could not be closed cleanly: {e} ')
 
