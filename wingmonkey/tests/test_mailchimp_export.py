@@ -29,13 +29,13 @@ def expected_merge_field_collection():
                 'name': 'First Name',
                 'type': MergeFieldTypes.TEXT,
                 'required': False,
-                'default_value': None,
+                'default_value': '',
                 'public': False,
                 'display_order': 1,
-                'options': None,
-                'help_text': None,
+                'options': {},
+                'help_text': '',
                 'list_id': 'jbrrwky1689',
-                '_links': None
+                '_links': []
             },
             {
                 'merge_id': 2,
@@ -43,18 +43,18 @@ def expected_merge_field_collection():
                 'name': 'Last Name',
                 'type': MergeFieldTypes.TEXT,
                 'required': False,
-                'default_value': None,
+                'default_value': '',
                 'public': False,
                 'display_order': 2,
-                'options': None,
-                'help_text': None,
+                'options': {},
+                'help_text': '',
                 'list_id': 'jbrrwky1689',
-                '_links': None
+                '_links': []
             },
         ],
         'list_id': 'jbrrwky1689',
         'total_items': 1,
-        '_links': None
+        '_links': []
     }
 
 

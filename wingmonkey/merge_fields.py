@@ -15,13 +15,17 @@ class MergeFieldSerializer(MailChimpSessionSchema):
     name = fields.Str()
     type = fields.Str()
     required = fields.Boolean()
-    default_value = fields.Str(missing=None)
+    default_value = fields.Str(required=False)
     public = fields.Boolean()
     display_order = fields.Int()
-    options = fields.Dict(missing=None)
-    help_text = fields.Str(missing=None)
+    options = fields.Dict(required=False)
+    help_text = fields.Str(required=False)
     list_id = fields.Str()
-    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
+    _links = fields.List(cls_or_instance=fields.Dict(), dump_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.dump_only = ('_links',)
 
     def create(self, list_id, merge_field_instance):
         """
@@ -50,7 +54,6 @@ class MergeFieldSerializer(MailChimpSessionSchema):
         """
         response = self.session.patch(f'lists/{list_id}/merge-fields/{merge_field_instance.merge_id}',
                                       json=self.dumps(merge_field_instance))
-
         if response:
             return MergeField(**self.load(response.json()))
 
@@ -67,7 +70,7 @@ class MergeFieldSerializer(MailChimpSessionSchema):
 class MergeField(MailChimpData):
 
     def __init__(self, merge_id=None, tag=None, name=None, type=MergeFieldTypes.TEXT, required=False,
-                 default_value=None, public=False, display_order=None, options=None, help_text=None, list_id=None,
+                 default_value='', public=False, display_order=0, options=None, help_text=None, list_id=None,
                  _links=None):
         self.merge_id = merge_id
         if not isinstance(tag, str):
@@ -79,10 +82,10 @@ class MergeField(MailChimpData):
         self.default_value = default_value
         self.public = public
         self.display_order = display_order
-        self.options = options
-        self.help_text = help_text
+        self.options = {} if options is None else options
+        self.help_text = '' if help_text is None else help_text
         self.list_id = list_id
-        self._links = _links
+        self._links = [] if _links is None else _links
 
 
 class MergeFieldCollectionSerializer(MailChimpSessionSchema):
