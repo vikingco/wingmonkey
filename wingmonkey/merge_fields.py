@@ -21,7 +21,7 @@ class MergeFieldSerializer(MailChimpSessionSchema):
     options = fields.Dict(missing=None)
     help_text = fields.Str(missing=None)
     list_id = fields.Str()
-    _links = fields.Dict(missing=None)
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def create(self, list_id, merge_field_instance):
         """
@@ -90,7 +90,7 @@ class MergeFieldCollectionSerializer(MailChimpSessionSchema):
     merge_fields = fields.List(cls_or_instance=fields.Nested(MergeFieldSerializer))
     list_id = fields.Str()
     total_items = fields.Int()
-    _links = fields.Dict(missing=None)
+    _links = fields.List(cls_or_instance=fields.Dict(), missing=None)
 
     def read(self, list_id):
         """
