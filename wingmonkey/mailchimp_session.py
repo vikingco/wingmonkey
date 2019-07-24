@@ -1,5 +1,6 @@
 from logging import getLogger
-from asyncio import get_event_loop, TimeoutError, CancelledError, new_event_loop, set_event_loop, wait_for
+from asyncio import (get_event_loop, TimeoutError, CancelledError, new_event_loop, set_event_loop, wait_for,
+                     ensure_future)
 from requests import Session, exceptions
 from requests.auth import HTTPBasicAuth
 from aiohttp import ClientSession, web_exceptions, client_exceptions, BasicAuth
@@ -34,7 +35,10 @@ class MailChimpSession(object):
     def __del__(self):
         try:
             self.session.close()
-            self.loop.run_until_complete(self.async_session.close())
+            if self.loop.is_running():
+                ensure_future(self.async_session.close())
+            else:
+                self.loop.run_until_complete(self.async_session.close())
         except Exception as e:
             logger.warning(f'MailChimpSession could not be closed cleanly: {e} ')
 
