@@ -4,7 +4,7 @@ from json import dumps
 from marshmallow.exceptions import ValidationError
 
 from wingmonkey.mailchimp_session import MailChimpSession
-from wingmonkey.merge_fields import (MergeField, MergeFieldSerializer, MergeFieldCollection,
+from wingmonkey.merge_fields import (MergeField, MergeFieldSerializer, CreateMergeFieldSerializer, MergeFieldCollection,
                                      MergeFieldCollectionSerializer, get_merge_field_mapping, match_tag_to_name)
 from wingmonkey.settings import DEFAULT_MAILCHIMP_ROOT
 from wingmonkey.enums import MergeFieldTypes
@@ -74,26 +74,15 @@ def test_merge_field_with_tag_not_str(expected_merge_field):
 
 
 def test_merge_field_create(expected_merge_field):
-    merge_field = MergeField(name='Firestarter', tag='FIRSRTR', type=MergeFieldTypes.TEXT, list_id='TheFatOfTheLand',
-                             merge_id=12345)
-    serializer = MergeFieldSerializer(only=('tag', 'name', 'type', 'merge_id', 'list_id'))
+    merge_field = MergeField(name='Firestarter', tag='FIRSRTR', type=MergeFieldTypes.TEXT, list_id='TheFatOfTheLand')
+    serializer = CreateMergeFieldSerializer(only=('tag', 'name', 'type', 'merge_id', 'list_id'))
     with Mocker() as request_mock:
         request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_merge_field["list_id"]}/merge-fields',
                           text=dumps(expected_merge_field))
         response = serializer.create(merge_field.list_id, merge_field)
         assert request_mock.last_request.json() == {'tag': 'FIRSRTR', 'list_id': 'TheFatOfTheLand',
-                                                    'merge_id': 12345, 'type': 'text', 'name': 'Firestarter'}
+                                                    'type': 'text', 'name': 'Firestarter'}
         assert compare_result(response, expected_merge_field)
-
-
-def test_merge_field_create_error_on_incorrect_fields(expected_merge_field):
-    merge_field = MergeField(name='Firestarter', tag='FIRSRTR', type=MergeFieldTypes.TEXT, list_id='TheFatOfTheLand',
-                             display_order='wrong_data')
-    serializer = MergeFieldSerializer()
-    with Mocker() as request_mock, raises(ValidationError):
-        request_mock.post(f'{DEFAULT_MAILCHIMP_ROOT}/lists/{expected_merge_field["list_id"]}/merge-fields',
-                          text=dumps(expected_merge_field))
-        serializer.create(merge_field.list_id, merge_field)
 
 
 def test_merge_field_read(expected_merge_field):
