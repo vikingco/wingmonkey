@@ -6,6 +6,32 @@ from wingmonkey.mailchimp_base import MailChimpData
 from wingmonkey.lists import get_all_lists
 
 
+class CreateMergeFieldSerializer(MailChimpSessionSchema):
+    class Meta:
+        unknown = EXCLUDE
+
+    merge_id = fields.Int(required=False, load_only=True)
+    tag = fields.Str()
+    name = fields.Str()
+    type = fields.Str()
+    required = fields.Boolean()
+    public = fields.Boolean()
+    display_order = fields.Int(required=False, load_only=True)
+    options = fields.Dict(required=False, load_only=True)
+    help_text = fields.Str(required=False, load_only=True)
+    list_id = fields.Str()
+
+    def create(self, list_id, merge_field_instance):
+        """
+        :param list_id: id of list the merge field will be defined for
+        :param merge_field_instance: MergeField
+        :return: MergeField instance created on server
+        """
+        response = self.session.post(f'lists/{list_id}/merge-fields', json=self.dumps(merge_field_instance))
+        if response:
+            return MergeField(**self.load(response.json()))
+
+
 class MergeFieldSerializer(MailChimpSessionSchema):
     class Meta:
         unknown = EXCLUDE
@@ -26,16 +52,6 @@ class MergeFieldSerializer(MailChimpSessionSchema):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.dump_only = ('_links',)
-
-    def create(self, list_id, merge_field_instance):
-        """
-        :param list_id: id of list the merge field will be defined for
-        :param merge_field_instance: MergeField
-        :return: MergeField instance created on server
-        """
-        response = self.session.post(f'lists/{list_id}/merge-fields', json=self.dumps(merge_field_instance))
-        if response:
-            return MergeField(**self.load(response.json()))
 
     def read(self, list_id, merge_id):
         """
