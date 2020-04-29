@@ -11,21 +11,17 @@ dependency_links = []
 # Inject requirements from requirements.txt into setup.py
 requirements_file = parse_requirements(path.join('requirements', 'requirements.txt'), session=PipSession())
 for req in requirements_file:
-    install_requires.append(str(req.req))
-    if req.link:
-        dependency_links.append(str(req.link))
+    install_requires.append(str(req.requirement))
 
 # Inject test requirements from requirements_test.txt into setup.py
 requirements_test_file = parse_requirements(path.join('requirements', 'requirements_test.txt'), session=PipSession())
 for req in requirements_test_file:
-    tests_require.append(str(req.req))
-    if req.link:
-        dependency_links.append(str(req.link))
+    tests_require.append(str(req.requirement))
 
 
 setup(
     name='wingmonkey',
-    version='0.2.1',
+    version='0.2.4',
     url='https://github.com/vikingco/wingmonkey',
     license='BSD',
     author='Jonas Steur',
